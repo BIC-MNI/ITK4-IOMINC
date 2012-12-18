@@ -1,9 +1,9 @@
 set(DOCUMENTATION "This module contains classes for reading and writing image
-files in the Tagged Image File Format (TIFF).")
+files in the MINC2 file Format (mnc).")
 
-itk_module(ITKIOTIFF
+itk_module(ITKIOMINC2
   DEPENDS
-    ITKTIFF
+    ITKMINC2
     ITKIOImageBase
   TEST_DEPENDS
     ITKTestKernel

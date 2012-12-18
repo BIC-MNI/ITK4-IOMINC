@@ -18,6 +18,8 @@
 /**
  *         The specification for this file format is taken from the
  *         web site http://www.bic.mni.mcgill.ca/ServicesSoftware/MINC
+ * \author Vladimir S. FONOV
+ *         Brain Imaging Center, Montreal Neurological Institute, McGill University, Montreal Canada 2012
  * \author Leila Baghdadi
  *         Mouse Imaging Centre, Toronto, Canada 2005.
  */
@@ -56,7 +58,6 @@ namespace itk
  *
  * \ingroup IOFilters
  *
- * \ingroup ITKReview
  */
 class ITK_EXPORT MINC2ImageIO:public ImageIOBase
 {
