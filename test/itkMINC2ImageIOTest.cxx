@@ -20,12 +20,11 @@
 
 #include "itkArray.h"
 #include "itkVectorImage.h"
-#include "itkMincImageIO.h"
-#include "itkMincImageIOFactory.h"
+#include "itkMINC2ImageIO.h"
+#include "itkMINC2ImageIOFactory.h"
 #include "itkIOTestHelper.h"
 #include "itkMetaDataObject.h"
 #include "itkObjectFactoryBase.h"
-#include "itkMincHelpers.h"
 
 static void RandomPix(vnl_random &randgen,itk::RGBPixel<unsigned char> &pix,double _max=itk::NumericTraits<unsigned char>::max())
 {
@@ -121,7 +120,7 @@ static double eql_vector_diff(const itk::Point<TPixel,3> &v1,const itk::Point<TP
 }
 
 
-template <typename TPixel,int dim> int MINCReadWriteTest(const char *fileName,nc_type minc_storage_type,double tolerance=0.0)
+template <typename TPixel,int dim> int MINC2ReadWriteTest(const char *fileName,nc_type minc_storage_type,double tolerance=0.0)
 {
   int success(EXIT_SUCCESS);
   
@@ -214,7 +213,7 @@ template <typename TPixel,int dim> int MINCReadWriteTest(const char *fileName,nc
   }
   catch(itk::ExceptionObject &err)
   {
-    std::cout << "itkMINCImageIOTest" << std::endl
+    std::cout << "itkMINC2ImageIOTest" << std::endl
               << "Exception Object caught: " << std::endl
               << err << " in "<< fileName<< std::endl;
     return EXIT_FAILURE;
@@ -316,7 +315,7 @@ template <typename TPixel,int dim> int MINCReadWriteTest(const char *fileName,nc
 }
 
 
-template <typename TPixel,int dim> int MINCReadWriteTestVector(const char *fileName,size_t vector_length,nc_type minc_storage_type,double tolerance=0.0)
+template <typename TPixel,int dim> int MINC2ReadWriteTestVector(const char *fileName,size_t vector_length,nc_type minc_storage_type,double tolerance=0.0)
 {
   int success(EXIT_SUCCESS);
   
@@ -412,7 +411,7 @@ template <typename TPixel,int dim> int MINCReadWriteTestVector(const char *fileN
   }
   catch(itk::ExceptionObject &err)
   {
-    std::cout << "itkMINCImageIOTest" << std::endl
+    std::cout << "itkMINC2ImageIOTest" << std::endl
               << "Exception Object caught: " << std::endl
               << err << " in "<< fileName<< std::endl;
     return EXIT_FAILURE;
@@ -509,7 +508,7 @@ template <typename TPixel,int dim> int MINCReadWriteTestVector(const char *fileN
 }
 
 
-int itkMINCImageIOTest(int ac, char * av [] )
+int itkMINC2ImageIOTest(int ac, char * av [] )
 {
   std::string prefix("");
   if(ac > 1)
@@ -523,40 +522,40 @@ int itkMINCImageIOTest(int ac, char * av [] )
 
   int result(0);
   // stright forward test
-  result += MINCReadWriteTest<unsigned char,3>("3DUCharImage.mnc",NC_BYTE);
-  result += MINCReadWriteTest<float,3>("3DFloatImage.mnc",NC_FLOAT);
-  result += MINCReadWriteTest<double,3>("3DDoubleImage.mnc",NC_DOUBLE);
-  result += MINCReadWriteTest<itk::RGBPixel<unsigned char>,3 >("3DRGBImage.mnc",NC_BYTE);
-  result += MINCReadWriteTest<itk::Vector<float,3>,3 >("3DVectorImage.mnc",NC_FLOAT);
+  result += MINC2ReadWriteTest<unsigned char,3>("3DUCharImage.mnc",NC_BYTE);
+  result += MINC2ReadWriteTest<float,3>("3DFloatImage.mnc",NC_FLOAT);
+  result += MINC2ReadWriteTest<double,3>("3DDoubleImage.mnc",NC_DOUBLE);
+  result += MINC2ReadWriteTest<itk::RGBPixel<unsigned char>,3 >("3DRGBImage.mnc",NC_BYTE);
+  result += MINC2ReadWriteTest<itk::Vector<float,3>,3 >("3DVectorImage.mnc",NC_FLOAT);
 
   // expecting rounding errors
-  result += MINCReadWriteTest<float,3>("3DFloatImage_byte.mnc",NC_BYTE,0.2);
-  result += MINCReadWriteTest<float,3>("3DFloatImage_short.mnc",NC_SHORT,0.01);
+  result += MINC2ReadWriteTest<float,3>("3DFloatImage_byte.mnc",NC_BYTE,0.2);
+  result += MINC2ReadWriteTest<float,3>("3DFloatImage_short.mnc",NC_SHORT,0.01);
   
-  result += MINCReadWriteTest<double,3>("3DDoubleImage_byte.mnc",NC_BYTE,0.2);
-  result += MINCReadWriteTest<double,3>("3DDoubleImage_short.mnc",NC_SHORT,0.01);
+  result += MINC2ReadWriteTest<double,3>("3DDoubleImage_byte.mnc",NC_BYTE,0.2);
+  result += MINC2ReadWriteTest<double,3>("3DDoubleImage_short.mnc",NC_SHORT,0.01);
   
-  result += MINCReadWriteTest<itk::Vector<float,3>,3 >("3DVectorImage_byte.mnc",NC_BYTE,0.5);
-  result += MINCReadWriteTest<itk::Vector<float,3>,3 >("3DVectorImage_short.mnc",NC_SHORT,0.05);
+  result += MINC2ReadWriteTest<itk::Vector<float,3>,3 >("3DVectorImage_byte.mnc",NC_BYTE,0.5);
+  result += MINC2ReadWriteTest<itk::Vector<float,3>,3 >("3DVectorImage_short.mnc",NC_SHORT,0.05);
   
 
   //testing variable vector case
   // stright forward test
-  result += MINCReadWriteTestVector<unsigned char,3>("4DUCharImage.mnc",10,NC_BYTE,0.0001);
-  result += MINCReadWriteTestVector<float,3>("4DFloatImage.mnc",10,NC_FLOAT,0.0001);
-  result += MINCReadWriteTestVector<double,3>("4DDoubleImage.mnc",10,NC_DOUBLE,0.0001);
+  result += MINC2ReadWriteTestVector<unsigned char,3>("4DUCharImage.mnc",10,NC_BYTE,0.0001);
+  result += MINC2ReadWriteTestVector<float,3>("4DFloatImage.mnc",10,NC_FLOAT,0.0001);
+  result += MINC2ReadWriteTestVector<double,3>("4DDoubleImage.mnc",10,NC_DOUBLE,0.0001);
 
   // expecting rounding errors
-  result += MINCReadWriteTestVector<float,3>("4DFloatImage_byte.mnc",10,NC_BYTE,0.2);
-  result += MINCReadWriteTestVector<float,3>("4DFloatImage_short.mnc",10,NC_SHORT,0.01);
+  result += MINC2ReadWriteTestVector<float,3>("4DFloatImage_byte.mnc",10,NC_BYTE,0.2);
+  result += MINC2ReadWriteTestVector<float,3>("4DFloatImage_short.mnc",10,NC_SHORT,0.01);
   
-  result += MINCReadWriteTestVector<double,3>("4DDoubleImage_byte.mnc",10,NC_BYTE,0.2);
-  result += MINCReadWriteTestVector<double,3>("4DDoubleImage_short.mnc",10,NC_SHORT,0.01);
+  result += MINC2ReadWriteTestVector<double,3>("4DDoubleImage_byte.mnc",10,NC_BYTE,0.2);
+  result += MINC2ReadWriteTestVector<double,3>("4DDoubleImage_short.mnc",10,NC_SHORT,0.01);
   
-/*  result += MINCReadWriteTest<unsigned char,4>("4DUCharImage.mnc");
-  result += MINCReadWriteTest<float,4>("4DFloatImage.mnc");*/
+/*  result += MINC2ReadWriteTest<unsigned char,4>("4DUCharImage.mnc");
+  result += MINC2ReadWriteTest<float,4>("4DFloatImage.mnc");*/
   
-/*  result += MINCReadWriteTest<itk::RGBPixel<unsigned char>,4 >("4DRGBImage.mnc");
-  result += MINCReadWriteTest<itk::Vector<float,3>,3 >("4DVectorImage.mnc");*/
+/*  result += MINC2ReadWriteTest<itk::RGBPixel<unsigned char>,4 >("4DRGBImage.mnc");
+  result += MINC2ReadWriteTest<itk::Vector<float,3>,3 >("4DVectorImage.mnc");*/
   return result != 0;
 }
