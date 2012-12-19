@@ -1,5 +1,5 @@
-project(ITKIOMINC2)
-set(ITKIOMINC2_LIBRARIES ITKIOMINC2)
+project(ITKIOMINC)
+set(ITKIOMINC_LIBRARIES ITKIOMINC)
 
 IF(NOT ITK_USE_SYSTEM_HDF5)
   include_directories(
@@ -7,6 +7,5 @@ IF(NOT ITK_USE_SYSTEM_HDF5)
     "${ITKHDF5_BINARY_DIR}/src/itkhdf5"
     )
 ENDIF()
-
 
 itk_module_impl()

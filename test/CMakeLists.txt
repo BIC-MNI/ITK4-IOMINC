@@ -7,18 +7,18 @@ IF(NOT ITK_USE_SYSTEM_HDF5)
     )
 ENDIF()
 
-set(ITKIOMINC2Tests
-   itkMINC2ImageIOTest.cxx
-)
+set(ITKIOMINCTests
+   itkMINCImageIOTest.cxx
+  )
 
 # set(ITKIOTransformMincTests
 #    itkIOTransformMincTest.cxx
 # )
 
-CreateTestDriver(ITKIOMINC2 "${ITKIOMINC2-Test_LIBRARIES}" "${ITKIOMINC2Tests}")
+CreateTestDriver(ITKIOMINC "${ITKIOMINC-Test_LIBRARIES}" "${ITKIOMINCTests}")
 
-itk_add_test(NAME itkMINC2ImageIOTest
-  COMMAND ITKIOMINC2TestDriver itkMINC2ImageIOTest ${ITK_TEST_OUTPUT_DIR} )
+itk_add_test(NAME itkMINCImageIOTest
+  COMMAND ITKIOMINCTestDriver itkMINCImageIOTest ${ITK_TEST_OUTPUT_DIR} )
  
 # CreateTestDriver(ITKIOTransformMINC "${ITKIOMINC-Test_LIBRARIES}" "${ITKIOTransformMincTests}")
 # TARGET_LINK_LIBRARIES(ITKIOTransformMINCTestDriver ITKIOTransformBase )

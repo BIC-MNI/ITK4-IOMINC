@@ -24,8 +24,8 @@
  *         Mouse Imaging Centre, Toronto, Canada 2005.
  */
 
-#ifndef __itkMINC2ImageIO_h
-#define __itkMINC2ImageIO_h
+#ifndef __itkMINCImageIO_h
+#define __itkMINCImageIO_h
 
 
 #include "itkImageIOBase.h"
@@ -36,11 +36,11 @@
 
 namespace itk
 {
-/** \class MINC2ImageIO
+/** \class MINCImageIO
  *
  * \author Leila Baghdadi
- * \brief Class that defines how to read MINC2 file format. Note,like
- * ITK, MINC2 is N dimensional and dimensions can be submitted in any
+ * \brief Class that defines how to read MINC file format. Note,like
+ * ITK, MINC is N dimensional and dimensions can be submitted in any
  * arbitrary order. Here we make sure the dimensions are ordered as
  * xspace, yspace, zspace, time and vector_dimension and so on or
  * xfrequencey, yfrequency, zfrequency, tfrequency and
@@ -49,7 +49,7 @@ namespace itk
  * am not sure how to deal with "iregularly sampled" dimensions yet!
  *
  * This code was contributed in the Insight Journal paper:
- * "MINC2.0 IO Support for ITK"
+ * "MINC.0 IO Support for ITK"
  * by Baghdadi L.
  * http://hdl.handle.net/1926/191
  * http://www.insight-journal.org/browse/publication/88
@@ -57,11 +57,11 @@ namespace itk
  * \ingroup IOFilters
  *
  */
-class ITK_EXPORT MINC2ImageIO:public ImageIOBase
+class ITK_EXPORT MINCImageIO:public ImageIOBase
 {
 public:
   /** Standard class typedefs. */
-  typedef MINC2ImageIO          Self;
+  typedef MINCImageIO          Self;
   typedef ImageIOBase           Superclass;
   typedef SmartPointer< Self >  Pointer;
   typedef Matrix< float, 3, 3 > MatrixType;
@@ -69,7 +69,7 @@ public:
   itkNewMacro(Self);
 
   /** Run-time type information (and related methods). */
-  itkTypeMacro(MINC2ImageIO, ImageIOBase);
+  itkTypeMacro(MINCImageIO, ImageIOBase);
 
   /*-------- This part of the interface deals with reading data. ------ */
 
@@ -103,8 +103,8 @@ public:
   void XYZFromDirectionCosines(midimhandle_t *hdims, int *dim_indices, size_t *number_of_components);
 
 protected:
-  MINC2ImageIO();
-  ~MINC2ImageIO();
+  MINCImageIO();
+  ~MINCImageIO();
   void PrintSelf(std::ostream & os, Indent indent) const;
 
   void WriteSlice(std::string & fileName, const void *buffer);
@@ -143,7 +143,7 @@ protected:
   int m_Complex;
 
 private:
-  MINC2ImageIO(const Self &);   //purposely not implemented
+  MINCImageIO(const Self &);   //purposely not implemented
   void operator=(const Self &); //purposely not implemented
 
   // Description
@@ -156,4 +156,4 @@ private:
 };
 } // end namespace itk
 
-#endif // __itkMINC2ImageIO_h
+#endif // __itkMINCImageIO_h

@@ -1,4 +1,4 @@
 ITK4-IOMINC
 ===========
 
-IOMINC2 module for ITK integration
+IOMINC module for ITK integration

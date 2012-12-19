@@ -1,8 +1,8 @@
-set(ITKIOMINC2_SRC
-  itkMINC2ImageIO.cxx
-  itkMINC2ImageIOFactory.cxx
+set(ITKIOMINC_SRC
+  itkMINCImageIO.cxx
+  itkMINCImageIOFactory.cxx
 )
 
-add_library(ITKIOMINC2 ${ITKIOMINC2_SRC})
-target_link_libraries(ITKIOMINC2  ${ITKMINC2_LIBRARIES} ${ITKIOImageBase_LIBRARIES})
-itk_module_target(ITKIOMINC2)
+add_library(ITKIOMINC ${ITKIOMINC_SRC})
+target_link_libraries(ITKIOMINC  ${ITKMINC_LIBRARIES} ${ITKIOImageBase_LIBRARIES})
+itk_module_target(ITKIOMINC)
