@@ -229,19 +229,12 @@ void MINCImageIO::Read(void *buffer)
 MINCImageIO::MINCImageIO()
 {
   this->m_NDims = 0;
-<<<<<<< HEAD:src/itkMINC2ImageIO.cxx
-  this->m_DimensionName  = new char *[MINC2_MAXDIM + 1];
-  this->m_DimensionSize  = new misize_t[MINC2_MAXDIM + 1];
-  this->m_DimensionStart = new double[MINC2_MAXDIM + 1];
-  this->m_DimensionStep  = new double[MINC2_MAXDIM + 1];
-  this->m_DimensionIndices = new int[MINC2_MAXDIM + 1];
-=======
   this->m_DimensionName  = new char *[MINC_MAXDIM + 1];
-  this->m_DimensionSize  = new unsigned int[MINC_MAXDIM + 1];
+  this->m_DimensionSize  = new misize_t[MINC_MAXDIM + 1];
   this->m_DimensionStart = new double[MINC_MAXDIM + 1];
   this->m_DimensionStep  = new double[MINC_MAXDIM + 1];
   this->m_DimensionIndices = new int[MINC_MAXDIM + 1];
->>>>>>> Rename MINC2 to MINC.:src/itkMINCImageIO.cxx
+
 
   for ( int i = 0; i <= MINC_MAXDIM; i++ )
     {
@@ -336,13 +329,9 @@ void MINCImageIO::ReadImageInformation()
     }
   this->m_DimensionOrder[i] = '\0';
 
-<<<<<<< HEAD:src/itkMINC2ImageIO.cxx
   // fill the DimensionSize by calling the following MINC2.0 function
   misize_t *sizes = new misize_t[m_NDims];
-=======
-  // fill the DimensionSize by calling the following MINC.0 function
-  unsigned int *sizes = new unsigned int[m_NDims];
->>>>>>> Rename MINC2 to MINC.:src/itkMINCImageIO.cxx
+  
   if ( miget_dimension_sizes(hdims, m_NDims, sizes) < 0 )
     {
     // Error getting dimension sizes
@@ -522,11 +511,7 @@ void MINCImageIO::ReadImageInformation()
   delete[] hdims;
 }
 
-<<<<<<< HEAD:src/itkMINC2ImageIO.cxx
-void MINC2ImageIO::SetDimensionName(size_t i, char *name)
-=======
-void MINCImageIO::SetDimensionName(unsigned int i, char *name)
->>>>>>> Rename MINC2 to MINC.:src/itkMINCImageIO.cxx
+void MINCImageIO::SetDimensionName(size_t i, char *name)
 {
   if ( name )
     {
@@ -631,13 +616,8 @@ void MINCWriteHyperSlab(mihandle_t volume,
 {
   size_t i, j;
 
-<<<<<<< HEAD:src/itkMINC2ImageIO.cxx
-  misize_t tmpstart[MINC2_MAXDIM + 1];
-  misize_t tmpcount[MINC2_MAXDIM + 1];
-=======
-  unsigned long tmpstart[MINC_MAXDIM + 1];
-  unsigned long tmpcount[MINC_MAXDIM + 1];
->>>>>>> Rename MINC2 to MINC.:src/itkMINCImageIO.cxx
+  misize_t tmpstart[MINC_MAXDIM + 1];
+  misize_t tmpcount[MINC_MAXDIM + 1];
   // calculate the number of voxels per slice
   size_t size = 1;
 
@@ -913,15 +893,9 @@ void MINCImageIO::Write(const void *buffer)
 
   int           result = 0;
   mihandle_t    volume;
-<<<<<<< HEAD:src/itkMINC2ImageIO.cxx
-  midimhandle_t dim[MINC2_MAXDIM + 1];
-  misize_t offsets[MINC2_MAXDIM + 1];
-  misize_t counts[MINC2_MAXDIM + 1];
-=======
   midimhandle_t dim[MINC_MAXDIM + 1];
-  unsigned long offsets[MINC_MAXDIM + 1];
-  unsigned long counts[MINC_MAXDIM + 1];
->>>>>>> Rename MINC2 to MINC.:src/itkMINCImageIO.cxx
+  misize_t offsets[MINC_MAXDIM + 1];
+  misize_t counts[MINC_MAXDIM + 1];
   // create the MINC dimensions in the file order given by userdimorder,
   // remove any characters from userdimorder that don't match a used
   // dimension.
@@ -1324,11 +1298,7 @@ void MINCImageIO::SetSliceScalingFromGlobalScaling(mihandle_t volume)
   m_Shift = volume_min - ( valid_min * m_Scale );
 }
 
-<<<<<<< HEAD:src/itkMINC2ImageIO.cxx
-void MINC2ImageIO::XYZFromDirectionCosines(midimhandle_t *hdims, int *dim_indices, size_t *numberOfComponents)
-=======
-void MINCImageIO::XYZFromDirectionCosines(midimhandle_t *hdims, int *dim_indices, unsigned int *numberOfComponents)
->>>>>>> Rename MINC2 to MINC.:src/itkMINCImageIO.cxx
+void MINCImageIO::XYZFromDirectionCosines(midimhandle_t *hdims, int *dim_indices, size_t *numberOfComponents)
 {
   midimclass_t dim_class;
   double       direction_cosines[3];
