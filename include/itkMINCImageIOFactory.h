@@ -15,29 +15,29 @@
  *  limitations under the License.
  *
  *=========================================================================*/
-#ifndef __itkMINC2ImageIOFactory_h
-#define __itkMINC2ImageIOFactory_h
+#ifndef __itkMINCImageIOFactory_h
+#define __itkMINCImageIOFactory_h
 
 #include "itkObjectFactoryBase.h"
 #include "itkImageIOBase.h"
 
 namespace itk
 {
-/** \class MINC2ImageIOFactory
- * \brief Create instances of MINC2ImageIO objects using an object factory.
+/** \class MINCImageIOFactory
+ * \brief Create instances of MINCImageIO objects using an object factory.
  *
  * This code was contributed in the Insight Journal paper:
- * "MINC2.0 IO Support for ITK"
+ * "MINC.0 IO Support for ITK"
  * by Baghdadi L.
  * http://hdl.handle.net/1926/191
  * http://www.insight-journal.org/browse/publication/88
  *
  */
-class ITK_EXPORT MINC2ImageIOFactory:public ObjectFactoryBase
+class ITK_EXPORT MINCImageIOFactory:public ObjectFactoryBase
 {
 public:
   /** Standard class typedefs. */
-  typedef MINC2ImageIOFactory        Self;
+  typedef MINCImageIOFactory        Self;
   typedef ObjectFactoryBase          Superclass;
   typedef SmartPointer< Self >       Pointer;
   typedef SmartPointer< const Self > ConstPointer;
@@ -49,24 +49,24 @@ public:
 
   /** Method for class instantiation. */
   itkFactorylessNewMacro(Self);
-  static MINC2ImageIOFactory * FactoryNew() { return new MINC2ImageIOFactory; }
+  static MINCImageIOFactory * FactoryNew() { return new MINCImageIOFactory; }
   /** Run-time type information (and related methods). */
-  itkTypeMacro(MINC2ImageIOFactory, ObjectFactoryBase);
+  itkTypeMacro(MINCImageIOFactory, ObjectFactoryBase);
 
   /** Register one factory of this type  */
   static void RegisterOneFactory(void)
   {
-    MINC2ImageIOFactory::Pointer MINC2Factory = MINC2ImageIOFactory::New();
+    MINCImageIOFactory::Pointer MINCFactory = MINCImageIOFactory::New();
 
-    ObjectFactoryBase::RegisterFactory(MINC2Factory);
+    ObjectFactoryBase::RegisterFactory(MINCFactory);
   }
 
 protected:
-  MINC2ImageIOFactory();
-  ~MINC2ImageIOFactory();
+  MINCImageIOFactory();
+  ~MINCImageIOFactory();
 
 private:
-  MINC2ImageIOFactory(const Self &); //purposely not implemented
+  MINCImageIOFactory(const Self &); //purposely not implemented
   void operator=(const Self &);      //purposely not implemented
 };
 } // end namespace itk
