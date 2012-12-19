@@ -1191,10 +1191,10 @@ void MINCImageIO::Write(const void *buffer)
     miset_volume_range(volume, maxval * m_Scale + m_Shift, minval * m_Scale + m_Shift);
     }
   miclose_volume(volume);
-  for ( i = 0; i < ndims; i++ )
-    {
-    mifree_dimension_handle(dim[i]);
-    }
+//   for ( i = 0; i < ndims; i++ )
+//     {
+//     mifree_dimension_handle(dim[i]);
+//     }
 }
 
 void MINCImageIO::SetSliceScalingFromLocalScaling(mihandle_t volume)
