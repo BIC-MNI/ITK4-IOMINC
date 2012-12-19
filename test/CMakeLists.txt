@@ -22,7 +22,8 @@ itk_add_test(NAME itkMINCImageIOTest
   COMMAND ITKIOMINCTestDriver itkMINCImageIOTest ${ITK_TEST_OUTPUT_DIR} )
 
 itk_add_test(NAME itkMINCImageIOTest2
-  COMMAND ITKIOMINCTestDriver itkMINCImageIOTest2 ${ITK_TEST_OUTPUT_DIR} )
+  COMMAND ITKIOMINCTestDriver itkMINCImageIOTest2
+      DATA{Input/pd_z+_byte_cor.mnc} ${ITK_TEST_OUTPUT_DIR}/pd_z+_byte_cor.mnc)
 
 # CreateTestDriver(ITKIOTransformMINC "${ITKIOMINC-Test_LIBRARIES}" "${ITKIOTransformMincTests}")
 # TARGET_LINK_LIBRARIES(ITKIOTransformMINCTestDriver ITKIOTransformBase )
