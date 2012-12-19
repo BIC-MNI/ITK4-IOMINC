@@ -100,7 +100,7 @@ public:
   char * GetDimensionOrder() { return m_DimensionOrder; }
   void SetDimensionOrder(char *dimorder) { m_DimensionOrder = dimorder; }
 
-  void XYZFromDirectionCosines(midimhandle_t *hdims, int *dim_indices, unsigned int *number_of_components);
+  void XYZFromDirectionCosines(midimhandle_t *hdims, int *dim_indices, size_t *number_of_components);
 
 protected:
   MINC2ImageIO();
@@ -111,12 +111,11 @@ protected:
 
   // Num. dimensions in base class (c.f. GetNumberOfDimensions); why keep a
   // second copy here?
-  unsigned int m_NDims;
+  size_t m_NDims;
 
   char **m_DimensionName;
-  virtual void SetDimensionName(unsigned int i, char *name);
-
-  virtual char * GetDimensionName(unsigned int i){ return m_DimensionName[i]; }
+  virtual void SetDimensionName(size_t i, char *name);
+  virtual char * GetDimensionName(size_t i){ return m_DimensionName[i]; }
 
   char *m_DimensionOrder;
 
@@ -125,7 +124,7 @@ protected:
   double m_Scale;
 
   // dimension size and start and step
-  unsigned int *m_DimensionSize;
+  misize_t     *m_DimensionSize;
   double       *m_DimensionStart;
   double       *m_DimensionStep;
 

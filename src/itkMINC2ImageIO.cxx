@@ -82,13 +82,13 @@ void MINC2ImageIO::Read(void *buffer)
     itkDebugMacro(" Can not get volume data class!!\n");
     }
 
-  unsigned long start[MINC2_MAXDIM + 1];
-  unsigned long count[MINC2_MAXDIM + 1];
+  misize_t start[MINC2_MAXDIM + 1];
+  misize_t count[MINC2_MAXDIM + 1];
 
   // figure out how many dimensions out of the total NDims
   // are used by this class
-  unsigned int usefulDimensions = 0;
-  unsigned int i;
+  size_t usefulDimensions = 0;
+  size_t i;
   for ( i = 0; i < MINC2_MAXUSE; i++ )
     {
     if ( this->m_DimensionIndices[i] != -1 )
@@ -110,7 +110,7 @@ void MINC2ImageIO::Read(void *buffer)
   midimhandle_t *apparent_order = new  midimhandle_t[usefulDimensions];
   // order of dim_indices x,y,z,t,vector-dimension
   // apparent order vector-dimension,t,z,y,x
-  unsigned int j = 0;
+  size_t j = 0;
   for ( i = 0; i < 5; i++ )
     {
     if ( this->m_DimensionIndices[i] != -1 )
@@ -159,7 +159,7 @@ void MINC2ImageIO::Read(void *buffer)
   if ( usefulDimensions == 5 )
     {
     start[i] = 0;
-    unsigned int icount = count[i];
+    misize_t icount = count[i];
     if ( miget_dimension_size(apparent_order[3], &icount) < 0 )
       {
       itkDebugMacro(" Can not get dimension size \n");
@@ -177,7 +177,7 @@ void MINC2ImageIO::Read(void *buffer)
   if ( usefulDimensions == 4 )
     {
     start[i] = 0;
-    unsigned int icount = count[i];
+    misize_t icount = count[i];
     if ( miget_dimension_size(apparent_order[3], &icount) < 0 )
       {
       itkDebugMacro(" Can not get dimension size \n");
@@ -230,7 +230,7 @@ MINC2ImageIO::MINC2ImageIO()
 {
   this->m_NDims = 0;
   this->m_DimensionName  = new char *[MINC2_MAXDIM + 1];
-  this->m_DimensionSize  = new unsigned int[MINC2_MAXDIM + 1];
+  this->m_DimensionSize  = new misize_t[MINC2_MAXDIM + 1];
   this->m_DimensionStart = new double[MINC2_MAXDIM + 1];
   this->m_DimensionStep  = new double[MINC2_MAXDIM + 1];
   this->m_DimensionIndices = new int[MINC2_MAXDIM + 1];
@@ -312,7 +312,7 @@ void MINC2ImageIO::ReadImageInformation()
   // dimensions
   // in FILE_ORDER) and DimensionName
   m_DimensionOrder = new char[m_NDims + 1];
-  unsigned int i;
+  size_t i;
   for ( i = 0; i < m_NDims; i++ )
     {
     char *name;
@@ -329,7 +329,7 @@ void MINC2ImageIO::ReadImageInformation()
   this->m_DimensionOrder[i] = '\0';
 
   // fill the DimensionSize by calling the following MINC2.0 function
-  unsigned int *sizes = new unsigned int[m_NDims];
+  misize_t *sizes = new misize_t[m_NDims];
   if ( miget_dimension_sizes(hdims, m_NDims, sizes) < 0 )
     {
     // Error getting dimension sizes
@@ -342,7 +342,7 @@ void MINC2ImageIO::ReadImageInformation()
     {
     this->m_DimensionSize[i] = sizes[i];
     }
-  unsigned int numberOfComponents = 1;
+  size_t numberOfComponents = 1;
   this->XYZFromDirectionCosines(hdims, this->m_DimensionIndices, &numberOfComponents);
 
   double separations[MINC2_MAXDIM + 1];
@@ -509,7 +509,7 @@ void MINC2ImageIO::ReadImageInformation()
   delete[] hdims;
 }
 
-void MINC2ImageIO::SetDimensionName(unsigned int i, char *name)
+void MINC2ImageIO::SetDimensionName(size_t i, char *name)
 {
   if ( name )
     {
@@ -577,7 +577,7 @@ void MINCComputeScalarRange(int itkNotUsed(
 // Rupert Brooks, August 23, 2007
   double tmpminval = 1000.0;
   double tmpmaxval = 0.0;
-  int    idX, idY, idZ;
+  size_t idX, idY, idZ;
 
   for ( idZ = 0; idZ < Sizes[2]; idZ++ )
     {
@@ -606,18 +606,18 @@ void MINCComputeScalarRange(int itkNotUsed(
 //void MINC2ImageIO::
 template< class TBuffer >
 void MINCWriteHyperSlab(mihandle_t volume,
-                        unsigned long ndims,
+                        size_t ndims,
                         mitype_t minctype,
-                        const unsigned long start[],
-                        const unsigned long count[],
+                        const misize_t start[],
+                        const misize_t count[],
                         TBuffer *buffer)
 {
-  unsigned long i, j;
+  size_t i, j;
 
-  unsigned long tmpstart[MINC2_MAXDIM + 1];
-  unsigned long tmpcount[MINC2_MAXDIM + 1];
+  misize_t tmpstart[MINC2_MAXDIM + 1];
+  misize_t tmpcount[MINC2_MAXDIM + 1];
   // calculate the number of voxels per slice
-  unsigned long size = 1;
+  size_t size = 1;
 
   for ( i = 1; i < ndims; i++ )
     {
@@ -655,8 +655,8 @@ void MINCWriteHyperSlab(mihandle_t volume,
 
 void MINC2ImageIO::Write(const void *buffer)
 {
-  int i, j;
-  int ncomp;
+  size_t i, j;
+  size_t ncomp;
 
 // in general we cannot assume that m_original start or m_DirectionCosines exist
 // have to recompute them
@@ -730,13 +730,13 @@ void MINC2ImageIO::Write(const void *buffer)
     }
 
   // three dimensions (x,y,z) are always present
-  int ndims = 3;
-  int vsize = 0; // vector_dimension size
-  int usize = 0; // produce of all user defined dimensions
-  int tsize = 0; // time dimension size
-  int xsize = this->GetDimensions(0);
-  int ysize = this->GetDimensions(1);
-  int zsize = this->GetDimensions(2);
+  size_t ndims = 3;
+  size_t vsize = 0; // vector_dimension size
+  size_t usize = 0; // produce of all user defined dimensions
+  size_t tsize = 0; // time dimension size
+  size_t xsize = this->GetDimensions(0);
+  size_t ysize = this->GetDimensions(1);
+  size_t zsize = this->GetDimensions(2);
 
   const char *vname = "vector_dimension";
   const char *tname = "tspace";
@@ -806,7 +806,7 @@ void MINC2ImageIO::Write(const void *buffer)
     }
 
   // csize depends on whether the data is complex
-  int csize = ( m_Complex ? 2 : 1 );
+  size_t csize = ( m_Complex ? 2 : 1 );
   // check the number of components: the product of the sizes of
   // the complex, vector, and time dimensions should equal the
   // number of scalar components in the vtkImageData
@@ -817,7 +817,7 @@ void MINC2ImageIO::Write(const void *buffer)
     // so try to make a vector dimension to account for this.
 
     // calculate the product of the dimension sizes except for vsize
-    int dimprod = ( usize == 0 ? 1 : usize ) * ( tsize == 0 ? 1 : tsize ) * csize;
+    size_t dimprod = ( usize == 0 ? 1 : usize ) * ( tsize == 0 ? 1 : tsize ) * csize;
 
     if ( ncomp % dimprod != 0 )
       {
@@ -892,8 +892,8 @@ void MINC2ImageIO::Write(const void *buffer)
   int           result = 0;
   mihandle_t    volume;
   midimhandle_t dim[MINC2_MAXDIM + 1];
-  unsigned long offsets[MINC2_MAXDIM + 1];
-  unsigned long counts[MINC2_MAXDIM + 1];
+  misize_t offsets[MINC2_MAXDIM + 1];
+  misize_t counts[MINC2_MAXDIM + 1];
   // create the MINC dimensions in the file order given by userdimorder,
   // remove any characters from userdimorder that don't match a used
   // dimension.
@@ -1198,9 +1198,9 @@ void MINC2ImageIO::Write(const void *buffer)
 void MINC2ImageIO::SetSliceScalingFromLocalScaling(mihandle_t volume)
 {
   //find out min of mins and max of maxs for slices
-  unsigned int   i;
-  unsigned int   j;
-  unsigned long *coords = new unsigned long[this->m_NDims];
+  size_t   i;
+  size_t   j;
+  misize_t *coords = new misize_t[this->m_NDims];
   double         slice_max, slice_min;
   double         max = -1e300, min = 1e300;
   double         valid_max, valid_min;
@@ -1296,7 +1296,7 @@ void MINC2ImageIO::SetSliceScalingFromGlobalScaling(mihandle_t volume)
   m_Shift = volume_min - ( valid_min * m_Scale );
 }
 
-void MINC2ImageIO::XYZFromDirectionCosines(midimhandle_t *hdims, int *dim_indices, unsigned int *numberOfComponents)
+void MINC2ImageIO::XYZFromDirectionCosines(midimhandle_t *hdims, int *dim_indices, size_t *numberOfComponents)
 {
   midimclass_t dim_class;
   double       direction_cosines[3];
@@ -1307,9 +1307,9 @@ void MINC2ImageIO::XYZFromDirectionCosines(midimhandle_t *hdims, int *dim_indice
   // figure out present dimension in the order of either
   // xspace,yspace,zspace, time or xfrequency,yfrequency,zfrequency, tfrequency
   // --> x,y,z,t and vector-dimension
-  unsigned int i = 0;
-  unsigned int counter = 0;
-  unsigned int counter2 = 5;
+  size_t i = 0;
+  size_t counter = 0;
+  size_t counter2 = 5;
 
   for ( i = 0; i < this->m_NDims; i++ )
     {
@@ -1493,7 +1493,7 @@ int MINC2ImageIO::CheckDimensionOrder(char userdimorder[MINC2_MAXDIM])
   // the user has not set a DimensionSize for.
   for ( i = 0; userdimorder[i] && i <= MINC2_MAXDIM; i++ )
     {
-    int dimchar = userdimorder[i];
+    char dimchar = userdimorder[i];
 
     if ( dimchar != 'x' && dimchar != 'y' && dimchar != 'z' )
       {
@@ -1543,7 +1543,7 @@ int MINC2ImageIO::CheckDimensionOrder(char userdimorder[MINC2_MAXDIM])
     if ( this->m_DimensionName[i] )
       {
       // the first char in the name
-      int dimchar = this->m_DimensionName[i][0];
+      char dimchar = this->m_DimensionName[i][0];
 
       // is this dimension already in the dimension order?
       int found = 0;
