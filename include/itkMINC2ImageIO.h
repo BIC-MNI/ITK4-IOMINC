@@ -32,9 +32,7 @@
 
 #include "itkMatrix.h"
 
-extern "C" {
-#include <minc2.h>
-}
+#include <itk_minc2.h>
 
 namespace itk
 {
