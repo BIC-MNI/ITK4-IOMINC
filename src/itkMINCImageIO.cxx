@@ -196,7 +196,7 @@ void MINCImageIO::AllocateDimensions(int nDims)
     this->m_DimensionStep[i]  = 0.0;
     }
     
-  for ( int i = 0; i < sizeof(m_DimensionIndices) ; i++ )
+  for ( int i = 0; i < 5 ; i++ )
   {
     this->m_DimensionIndices[i] = -1;
   }
@@ -224,7 +224,7 @@ MINCImageIO::MINCImageIO()
   this->m_MincApparentDims = NULL;
   this->m_volume = NULL;
   
-  for ( int i = 0; i < sizeof(m_DimensionIndices) ; i++ )
+  for ( int i = 0; i < 5 ; i++ )
   {
     this->m_DimensionIndices[i] = -1;
   }
