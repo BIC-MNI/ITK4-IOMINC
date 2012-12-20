@@ -23,38 +23,39 @@ namespace itk
 {
 
 
-bool MINCImageIO::CanReadFile(const char *file)
+bool MINCImageIO::CanReadFile(const char *fileName)
 {
-  if ( *file == 0 )
+  if ( *fileName == 0 )
     {
     itkDebugMacro(<< "No filename specified.");
     return false;
     }
 
-  std::string::size_type mncPos = filename.rfind(".mnc");
+  std::string fileNameStr( fileName );
+  std::string::size_type mncPos = fileNameStr.rfind(".mnc");
   if ( (mncPos != std::string::npos)
-	&& (mncPos == filename.length() - 4) )
+	&& (mncPos == fileNameStr.length() - 4) )
     {
     return true;
     }
 
-  mncPos = filename.rfind(".MNC");
+  mncPos = fileNameStr.rfind(".MNC");
   if ( (mncPos != std::string::npos)
-	&& (mncPos == filename.length() - 4) )
+	&& (mncPos == fileNameStr.length() - 4) )
     {
     return true;
     }
 
-  mncPos = filename.rfind(".mnc2");
+  mncPos = fileNameStr.rfind(".mnc2");
   if ( (mncPos != std::string::npos)
-	&& (mncPos == filename.length() - 5) )
+	&& (mncPos == fileNameStr.length() - 5) )
     {
     return true;
     }
 
-  mncPos = filename.rfind(".MNC2");
+  mncPos = fileNameStr.rfind(".MNC2");
   if ( (mncPos != std::string::npos)
-	&& (mncPos == filename.length() - 5) )
+	&& (mncPos == fileNameStr.length() - 5) )
     {
     return true;
     }
