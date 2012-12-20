@@ -418,10 +418,10 @@ void MINCImageIO::ReadImageInformation()
   o_origin.Fill(0.0);
   
   
+  int spatial_dimension=0;
   for(int i=1;i<4;i++)
   {
-    int spatial_dimension=0;
-    if(this->m_DimensionIndices[i]!=-1) // have time dimension
+    if(this->m_DimensionIndices[i]!=-1) 
     {
       //MINC2: bad design!
       //micopy_dimension(hdim[this->m_DimensionIndices[i]],&apparent_dimension_order[usable_dimensions]);
@@ -621,7 +621,6 @@ void MINCImageIO::WriteImageInformation(void)
   AllocateDimensions(nDims+(nComp>1?1:0));
   
   int minc_dimensions=0;
-  
   if(nComp>3) //first dimension will be either vector or time
   {
      micreate_dimension(MItime, MI_DIMCLASS_TIME, MI_DIMATTR_REGULARLY_SAMPLED, nComp, &m_MincFileDims[minc_dimensions] );
@@ -668,13 +667,13 @@ void MINCImageIO::WriteImageInformation(void)
   
   vnl_matrix< double > inverseDirectionCosines = vnl_matrix_inverse< double >(dircosmatrix);
   origin*=inverseDirectionCosines; //transform to minc convention
-  
+ 
   for (int i = 0; i < nDims; i++ )
     {
       int j=i+(nComp>1?1:0);
       double dir_cos[3];
       for(int k=0;k<3;k++)
-        dir_cos[k]=dircosmatrix[i][j];
+        dir_cos[k]=dircosmatrix[i][k];
       
       miset_dimension_separation(m_MincFileDims[j],this->GetSpacing(i));
       miset_dimension_start(m_MincFileDims[j],origin[i]);
