@@ -38,7 +38,7 @@ int itkMINCImageIOTest3( int argc, char * argv [] )
 
   itk::MINCImageIOFactory::RegisterOneFactory();
 
-  typedef itk::Image< unsigned short, 3 > ImageType;
+  typedef itk::Image< float, 3 > ImageType;
 
   typedef itk::ImageFileReader< ImageType >   ReaderType;
   typedef itk::ImageFileWriter< ImageType >   WriterType;
