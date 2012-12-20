@@ -684,6 +684,45 @@ void MINCImageIO::WriteImageInformation(void)
   m_volume_type=MI_TYPE_FLOAT;
   m_volume_class=MI_CLASS_REAL;
   
+
+  switch(this->GetComponentType())
+  {
+    case UCHAR:
+      m_volume_type=MI_TYPE_UBYTE;
+      break;
+    case CHAR:
+      m_volume_type=MI_TYPE_BYTE;
+      break;
+    case USHORT:
+      m_volume_type=MI_TYPE_USHORT;
+      break;
+    case SHORT:
+      m_volume_type=MI_TYPE_SHORT;
+      break;
+    case UINT:  
+      m_volume_type=MI_TYPE_UINT;
+      break;
+    case INT:
+      m_volume_type=MI_TYPE_INT;
+      break;
+//     case ULONG://TODO: make sure we are cross-platform here!
+//       volume_data_type=MI_TYPE_ULONG;
+//       break;
+//     case LONG://TODO: make sure we are cross-platform here!
+//       volume_data_type=MI_TYPE_LONG;
+//       break;
+    case FLOAT://TODO: make sure we are cross-platform here!
+      m_volume_type=MI_TYPE_FLOAT;
+      break;
+    case DOUBLE://TODO: make sure we are cross-platform here!
+      m_volume_type=MI_TYPE_DOUBLE;
+      break;
+    default:
+      itkDebugMacro(<<"Could read datatype " << this->GetComponentType() );
+      return;
+  }
+  
+  
   if ( micreate_volume ( m_FileName.c_str(), minc_dimensions, m_MincFileDims, m_volume_type,
                     m_volume_class, NULL, &m_volume )<0 )
     {
