@@ -98,11 +98,6 @@ public:
    * that the IORegion has been set properly. */
   virtual void Write(const void *buffer);
 
-  char * GetDimensionOrder() { return m_DimensionOrder; }
-  void SetDimensionOrder(char *dimorder) { m_DimensionOrder = dimorder; }
-
-  void XYZFromDirectionCosines(midimhandle_t *hdims, int *dim_indices, misize_t *number_of_components);
-
 protected:
   MINCImageIO();
   ~MINCImageIO();
@@ -117,6 +112,7 @@ protected:
   misize_t     *m_DimensionSize;
   double       *m_DimensionStart;
   double       *m_DimensionStep;
+  int           m_DimensionIndices[5];
   
   // MINC2 volume handle , currently opened
   mihandle_t   m_volume;
@@ -131,6 +127,9 @@ protected:
   
   // cleanup internal buffers
   void CleanupDimensions(void);
+  
+  // close existing volume, cleanup internal structures
+  void CloseVolume(void);
 
 private:
   MINCImageIO(const Self &);   //purposely not implemented
