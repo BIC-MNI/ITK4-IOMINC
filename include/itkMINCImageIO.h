@@ -41,6 +41,8 @@ namespace itk
  * \author Leila Baghdadi
  * \brief Class that defines how to read MINC file format. 
  * 
+ * \ingroup ITKIOMINC
+ *
  * Note, like ITK, MINC is N dimensional and dimensions
  * can be submitted in any arbitrary order. Here we make sure the
  * dimensions are ordered as xspace, yspace, zspace, time and
