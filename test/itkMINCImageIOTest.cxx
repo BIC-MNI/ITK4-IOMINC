@@ -241,6 +241,8 @@ template <typename TPixel,int VDimension> int MINCReadWriteTest(const char *file
               << im->GetDirection()<< " in "<< fileName << std::endl;
     return EXIT_FAILURE;
   }
+  
+#ifdef CHECK_METADATA  
   //
   // Check MetaData
   itk::MetaDataDictionary & metaDict2(im2->GetMetaDataDictionary());
@@ -282,6 +284,7 @@ template <typename TPixel,int VDimension> int MINCReadWriteTest(const char *file
                <<  std::endl;
      success = EXIT_FAILURE;
    }
+#endif // CHECK_METADATA
 
   itk::ImageRegionIterator<ImageType> it2(im2,im2->GetLargestPossibleRegion());
   if(tolerance==0.0)
@@ -439,6 +442,7 @@ template <typename TPixel,int VDimension> int MINCReadWriteTestVector(const char
               << im->GetDirection()<< " in "<< fileName << std::endl;
     return EXIT_FAILURE;
   }
+#ifdef CHECK_METADATA
   //
   // Check MetaData
   itk::MetaDataDictionary & metaDict2(im2->GetMetaDataDictionary());
@@ -470,6 +474,7 @@ template <typename TPixel,int VDimension> int MINCReadWriteTestVector(const char
                <<  std::endl;
      success = EXIT_FAILURE;
    }
+#endif  //CHECK_METADATA
 
   itk::ImageRegionIterator<ImageType> it2(im2,im2->GetLargestPossibleRegion());
   InternalPixelType pix1,pix2;
@@ -524,6 +529,7 @@ int itkMINCImageIOTest(int ac, char * av [] )
   int result(0);
   // stright forward test
   result += MINCReadWriteTest<unsigned char,3>("3DUCharImage.mnc",MI_TYPE_BYTE);
+  
   result += MINCReadWriteTest<float,3>("3DFloatImage.mnc",MI_TYPE_FLOAT);
   result += MINCReadWriteTest<double,3>("3DDoubleImage.mnc",MI_TYPE_DOUBLE);
   result += MINCReadWriteTest<itk::RGBPixel<unsigned char>,3 >("3DRGBImage.mnc",MI_TYPE_BYTE);
