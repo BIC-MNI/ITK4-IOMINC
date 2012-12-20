@@ -38,7 +38,7 @@ static double abs_diff(const itk::RGBPixel<unsigned char> &pix1,const itk::RGBPi
 {
   double diff=0.0;
   for(int i=0;i<3;i++)
-    diff+=fabs(pix1[i]-pix2[i]);
+    diff += fabs(pix1[i]-pix2[i]);
   return diff;
 }
 
@@ -54,7 +54,7 @@ static double abs_diff(const itk::Vector<float> &pix1,const itk::Vector<float> &
 {
   double diff=0.0;
   for(int i=0;i<3;i++)
-    diff+=fabs(pix1[i]-pix2[i]);
+    diff += fabs(pix1[i]-pix2[i]);
   return diff;
 }
 
@@ -115,16 +115,16 @@ static double eql_vector_diff(const itk::Point<TPixel,3> &v1,const itk::Point<TP
 {
   double diff=0.0;
   for(size_t i=0;i<3;i++)
-    diff+=(v1[i]-v2[i])*(v1[i]-v2[i]);
+    diff += (v1[i]-v2[i])*(v1[i]-v2[i]);
   return sqrt(diff);
 }
 
 //TODO: properly implement storage type in MINC2 IO
-template <typename TPixel,int dim> int MINCReadWriteTest(const char *fileName,mitype_t minc_storage_type,double tolerance=0.0)
+template <typename TPixel,int VDimension> int MINCReadWriteTest(const char *fileName,mitype_t minc_storage_type,double tolerance=0.0)
 {
   int success(EXIT_SUCCESS);
   
-  typedef typename itk::Image<TPixel,dim> ImageType;
+  typedef typename itk::Image<TPixel,VDimension> ImageType;
   
   typename ImageType::SizeType size;
   typename ImageType::IndexType index;
@@ -132,7 +132,7 @@ template <typename TPixel,int dim> int MINCReadWriteTest(const char *fileName,mi
   typename ImageType::PointType origin;
   typename ImageType::DirectionType myDirection;
   
-  for(unsigned i = 0; i < dim; i++)
+  for(unsigned i = 0; i < VDimension; i++)
   {
     size[i] = 5;
     index[i] = 0;
@@ -150,13 +150,13 @@ template <typename TPixel,int dim> int MINCReadWriteTest(const char *fileName,mi
   im->SetRequestedRegion (region);
   im->SetSpacing( spacing );
   im->SetOrigin( origin );
-  im->Allocate ();    
+  im->Allocate ();
     
-  itk::Matrix<double,dim,dim> mat;
+  itk::Matrix<double,VDimension,VDimension> mat;
   
   mat.SetIdentity();
   
-  if(dim==3) { //there are problems with 4D direction cosines!
+  if(VDimension==3) { //there are problems with 4D direction cosines!
     // 30deg rotation
     mat[1][1] =
     mat[0][0] = 0.866025403784439;
@@ -288,7 +288,7 @@ template <typename TPixel,int dim> int MINCReadWriteTest(const char *fileName,mi
   {
     for(it.GoToBegin(),it2.GoToBegin(); !it.IsAtEnd() && !it2.IsAtEnd(); ++it,++it2)
     {
-      if(it.Value()!=it2.Value())
+      if(it.Value() != it2.Value())
       {
         std::cout << "Original Pixel (" << it.Value()
                   << ") doesn't match read-in Pixel ("
@@ -316,12 +316,12 @@ template <typename TPixel,int dim> int MINCReadWriteTest(const char *fileName,mi
 }
 
 
-template <typename TPixel,int dim> int MINCReadWriteTestVector(const char *fileName,size_t vector_length,mitype_t minc_storage_type,double tolerance=0.0)
+template <typename TPixel,int VDimension> int MINCReadWriteTestVector(const char *fileName,size_t vector_length,mitype_t minc_storage_type,double tolerance=0.0)
 {
   int success(EXIT_SUCCESS);
   
-  typedef typename itk::VectorImage<TPixel,dim> ImageType;
-  typedef typename itk::VectorImage<TPixel,dim>::PixelType InternalPixelType;
+  typedef typename itk::VectorImage<TPixel,VDimension>            ImageType;
+  typedef typename itk::VectorImage<TPixel,VDimension>::PixelType InternalPixelType;
   
   typename ImageType::SizeType size;
   typename ImageType::IndexType index;
@@ -329,7 +329,7 @@ template <typename TPixel,int dim> int MINCReadWriteTestVector(const char *fileN
   typename ImageType::PointType origin;
   typename ImageType::DirectionType myDirection;
   
-  for(unsigned i = 0; i < dim; i++)
+  for(unsigned i = 0; i < VDimension; i++)
   {
     size[i] = 5;
     index[i] = 0;
@@ -350,11 +350,11 @@ template <typename TPixel,int dim> int MINCReadWriteTestVector(const char *fileN
   im->SetVectorLength(vector_length);
   im->Allocate ();
   
-  itk::Matrix<double,dim,dim> mat;
+  itk::Matrix<double,VDimension,VDimension> mat;
   
   mat.SetIdentity();
   
-  if(dim==3) { //there are problems with 4D direction cosines!
+  if(VDimension==3) { //there are problems with 4D direction cosines!
     // 30deg rotation
     mat[1][1] =
     mat[0][0] = 0.866025403784439;
