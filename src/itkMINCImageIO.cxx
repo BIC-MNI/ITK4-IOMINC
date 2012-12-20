@@ -30,7 +30,8 @@ bool MINCImageIO::CanReadFile(const char *file)
     itkDebugMacro(<< "No filename specified.");
     return false;
     }
-    
+  std::string filename(file);
+  
   std::string::size_type mncPos = filename.rfind(".mnc");
   if ( (mncPos != std::string::npos)
 	&& (mncPos == filename.length() - 4) )
@@ -77,180 +78,73 @@ bool MINCImageIO::CanReadFile(const char *file)
 
 void MINCImageIO::Read(void *buffer)
 {
-  mihandle_t volume;
+  const unsigned int nDims = this->GetNumberOfDimensions();
+  const unsigned int nComp = this->GetNumberOfComponents();
 
-  // call to minc2.0 function to open the file
-  if ( miopen_volume(m_FileName.c_str(), MI2_OPEN_READ, &volume) < 0 )
+  misize_t *start=new misize_t[nDims+(nComp>1?1:0)];
+  misize_t *count=new misize_t[nDims+(nComp>1?1:0)];
+  
+  if(nComp>1)
+  {
+    start[0]=0;
+    count[0]=nComp;
+  }
+  
+ for ( unsigned int i = 0; i < nDims; i++ )
+  {
+  if ( i < m_IORegion.GetImageDimension() )
     {
-    // Error opening the volume
-    itkDebugMacro("Could not open file \"" << m_FileName.c_str() << "\".");
-    return;
+    start[i+(nComp>1?1:0)] = m_IORegion.GetIndex()[i];
+    count[i+(nComp>1?1:0)] = m_IORegion.GetSize()[i];
     }
-  mitype_t volume_data_type;
-  if ( miget_data_type(volume, &volume_data_type) < 0 )
+  else
     {
-    itkDebugMacro(" Can not get volume data type!!\n");
+    start[i+(nComp>1?1:0)] = 0;
+    count[i+(nComp>1?1:0)] = 1;
     }
-  int slice_scaling_flag;
-  // find out whether the data has slice scaling
-  if ( miget_slice_scaling_flag(volume, &slice_scaling_flag) < 0 )
-    {
-    itkDebugMacro(" Can not get slice scaling flag!!\n");
-    }
-  double valid_max, valid_min;
-  // find the data valid range
-  if ( miget_volume_valid_range(volume, &valid_max, &valid_min) < 0 )
-    {
-    itkDebugMacro(" Can not get valid max or min!!\n");
-    }
-
-  miclass_t volume_data_class;
-  if ( miget_data_class(volume, &volume_data_class) < 0 )
-    {
-    itkDebugMacro(" Can not get volume data class!!\n");
-    }
-
-  misize_t start[MINC_MAXDIM + 1];
-  misize_t count[MINC_MAXDIM + 1];
-
-  // figure out how many dimensions out of the total NDims
-  // are used by this class
-  size_t usefulDimensions = 0;
-  size_t i;
-  for ( i = 0; i < MINC_MAXUSE; i++ )
-    {
-    if ( this->m_DimensionIndices[i] != -1 )
-      {
-      usefulDimensions++;
-      }
-    }
-
-  // fill out the array of dimension handles,"regularly sampled"
-  // the dimensions will be retrieved in file order
-  midimhandle_t *hdims = new midimhandle_t[usefulDimensions];
-  if ( miget_volume_dimensions(volume, MI_DIMCLASS_ANY, MI_DIMATTR_ALL, MI_DIMORDER_FILE, this->m_NDims,
-                               hdims) < 0 )
-    {
-    itkDebugMacro(" Can not get dimension handles!!\n");
-    return;
-    }
-
-  midimhandle_t *apparent_order = new  midimhandle_t[usefulDimensions];
-  // order of dim_indices x,y,z,t,vector-dimension
-  // apparent order vector-dimension,t,z,y,x
-  size_t j = 0;
-  for ( i = 0; i < 5; i++ )
-    {
-    if ( this->m_DimensionIndices[i] != -1 )
-      {
-      apparent_order[j] = hdims[this->m_DimensionIndices[i]];
-      j++;
-      }
-    }
-
-  //check to see if app order same as file order
-  for ( i = 0; i < usefulDimensions; i++ )
-    {
-    if ( this->m_DimensionIndices[i] != static_cast< int >( i ) )
-      {
-      // set apparent order of dimensions so data can be accesed in that order
-      if ( miset_apparent_dimension_order(volume, usefulDimensions, apparent_order) < 0 )
-        {
-        itkDebugMacro(" Can not get apparent dimension order!!\n");
-        }
+  }
+  mitype_t volume_data_type=MI_TYPE_UBYTE;
+  
+  switch(this->GetComponentType())
+  {
+    case UCHAR:
+      volume_data_type=MI_TYPE_UBYTE;
       break;
-      }
-    }
-  // clean dynamic space allocated for dimension handles
-  delete[] hdims;
-  delete[] apparent_order;
-  //set the unused dimension to start 0 and offset 1 if ANY
-  i = 0;
-  for ( i = 0; i < ( this->m_NDims - usefulDimensions ); i++ )
-    {
-    start[i] = 0;
-    count[i] = 1;
-    }
-
-  start[i] = 0;
-  count[i] = this->GetDimensions(2);
-  i++;
-  start[i] = 0;
-  count[i] = this->GetDimensions(1);
-  i++;
-  start[i] = 0;
-  count[i] = this->GetDimensions(0);
-  i++;
-
-  //now take care of vector or time dimension
-  // z,y,x, t, vector_dimension
-  if ( usefulDimensions == 5 )
-    {
-    start[i] = 0;
-    misize_t icount = count[i];
-    if ( miget_dimension_size(apparent_order[3], &icount) < 0 )
-      {
-      itkDebugMacro(" Can not get dimension size \n");
-      }
-    count[i] = icount;
-    i++;
-    start[i] = 0;
-    icount = count[i];
-    if ( miget_dimension_size(apparent_order[4], &icount) < 0 )
-      {
-      itkDebugMacro(" Can not get dimension size \n");
-      }
-    count[i] = icount;
-    }
-  if ( usefulDimensions == 4 )
-    {
-    start[i] = 0;
-    misize_t icount = count[i];
-    if ( miget_dimension_size(apparent_order[3], &icount) < 0 )
-      {
-      itkDebugMacro(" Can not get dimension size \n");
-      }
-    count[i] = icount;
-    }
-
-  // set the data class for the file
-  switch ( volume_data_class )
-    {
-    case MI_CLASS_REAL:
-    case MI_CLASS_COMPLEX:
-    case MI_CLASS_INT:
-      if ( slice_scaling_flag )
-        {
-        if ( miget_real_value_hyperslab(volume, volume_data_type, start, count, buffer) < 0 )
-          {
-          itkDebugMacro(" Can not get real value hyperslab!!\n");
-          }
-        }
-      else
-        {
-        if ( miget_voxel_value_hyperslab(volume, volume_data_type, start, count, buffer) < 0 )
-          {
-          itkDebugMacro(" Can not get voxel value hyperslabs!!\n");
-          }
-        }
+    case CHAR:
+      volume_data_type=MI_TYPE_BYTE;
       break;
-    case MI_CLASS_LABEL:
-      if ( miget_voxel_value_hyperslab(volume, volume_data_type, start, count, buffer) < 0 )
-        {
-        itkDebugMacro(" Can not get voxel value hyperslabs!!\n");
-        }
+    case USHORT:
+      volume_data_type=MI_TYPE_USHORT;
       break;
-    case MI_CLASS_UNIFORM_RECORD:
-      {
-      itkDebugMacro(" Leave this until minc2.0 support it complete!!\n");
-      }
+    case SHORT:
+      volume_data_type=MI_TYPE_SHORT;
+      break;
+    case UINT:  
+      volume_data_type=MI_TYPE_UINT;
+      break;
+    case INT:
+      volume_data_type=MI_TYPE_INT;
+      break;
+//     case ULONG://TODO: make sure we are cross-platform here!
+//       volume_data_type=MI_TYPE_ULONG;
+//       break;
+//     case LONG://TODO: make sure we are cross-platform here!
+//       volume_data_type=MI_TYPE_LONG;
+//       break;
+    case FLOAT://TODO: make sure we are cross-platform here!
+      volume_data_type=MI_TYPE_FLOAT;
+      break;
+    case DOUBLE://TODO: make sure we are cross-platform here!
+      volume_data_type=MI_TYPE_DOUBLE;
+      break;
     default:
+      itkDebugMacro(<<"Could read datatype " << this->GetComponentType() );
       return;
-    }
-
-  if ( miclose_volume(volume) < 0 )
+  }
+  
+  if ( miget_real_value_hyperslab(m_volume, volume_data_type, start, count, buffer) < 0 )
     {
-    itkDebugMacro(" Can not close volume!\n");
+    itkDebugMacro(" Can not get real value hyperslab!!\n");
     }
 }
 
@@ -260,7 +154,7 @@ void MINCImageIO::CleanupDimensions(void)
   for ( int i = 0; i < this->m_NDims; i++ )
     {
      if(this->m_DimensionName[i])
-       free(this->m_DimensionName[i]);
+       free((void*)this->m_DimensionName[i]);
      this->m_DimensionName[i]=NULL;
     }
     
@@ -268,13 +162,15 @@ void MINCImageIO::CleanupDimensions(void)
   if(this->m_DimensionSize) delete[] this->m_DimensionSize;
   if(this->m_DimensionStart) delete[] this->m_DimensionStart;
   if(this->m_DimensionStep) delete[] this->m_DimensionStep;
-  if(this->m_DimensionIndices) delete[] this->m_DimensionIndices;
+  if(this->m_MincFileDims) delete [] this->m_MincFileDims;
+  if(this->m_MincApparentDims) delete [] this->m_MincApparentDims;
   
   this->m_DimensionName  = NULL;
   this->m_DimensionSize  = NULL;
   this->m_DimensionStart = NULL;
   this->m_DimensionStep  = NULL;
-  this->m_DimensionIndices = NULL;
+  this->m_MincFileDims = NULL;
+  this->m_MincApparentDims= NULL;
  
 }
 
@@ -289,6 +185,8 @@ void MINCImageIO::AllocateDimensions(int nDims)
   this->m_DimensionSize  = new misize_t[m_NDims];
   this->m_DimensionStart = new double[m_NDims];
   this->m_DimensionStep  = new double[m_NDims];
+  this->m_MincFileDims   = new midimhandle_t[m_NDims];
+  this->m_MincApparentDims = new midimhandle_t[m_NDims];
   
   for ( int i = 0; i < this->m_NDims; i++ )
     {
@@ -322,9 +220,9 @@ MINCImageIO::MINCImageIO()
   this->m_DimensionSize  = NULL;
   this->m_DimensionStart = NULL;
   this->m_DimensionStep  = NULL;
-
-  m_Complex = 0;
-  m_volume = NULL;
+  this->m_MincFileDims   = NULL;
+  this->m_MincApparentDims = NULL;
+  this->m_volume = NULL;
   
   for ( int i = 0; i < sizeof(m_DimensionIndices) ; i++ )
   {
@@ -368,9 +266,9 @@ void MINCImageIO::ReadImageInformation()
  
   // get dimension handles in FILE ORDER (i.e, the order as they are
   // submitted to file)
-  midimhandle_t *hdims = new midimhandle_t[m_NDims];
-  if ( miget_volume_dimensions(volume, MI_DIMCLASS_ANY, MI_DIMATTR_ALL, MI_DIMORDER_FILE, m_NDims,
-                               hdims) < 0 )
+  
+  if ( miget_volume_dimensions(m_volume, MI_DIMCLASS_ANY, MI_DIMATTR_ALL, MI_DIMORDER_FILE, m_NDims,
+                               this->m_MincFileDims) < 0 )
     {
     itkDebugMacro("Could not get dimension handles!");
     return;
@@ -379,7 +277,7 @@ void MINCImageIO::ReadImageInformation()
   for (int i = 0; i < m_NDims; i++ )
     {
     char *name;
-    if ( miget_dimension_name(hdims[i], &name) < 0 )
+    if ( miget_dimension_name(this->m_MincFileDims[i], &name) < 0 )
       {
       // Error getting dimension name
       itkDebugMacro("Could not get dimension name!");
@@ -405,20 +303,20 @@ void MINCImageIO::ReadImageInformation()
     }
 
   // fill the DimensionSize by calling the following MINC2.0 function
-  if ( miget_dimension_sizes(hdims, m_NDims, m_DimensionSize) < 0 )
+  if ( miget_dimension_sizes(this->m_MincFileDims, m_NDims, m_DimensionSize) < 0 )
     {
     // Error getting dimension sizes
     itkDebugMacro("Could not get dimension sizes!");
     return;
     }
  
-  if ( miget_dimension_separations(hdims, MI_ORDER_FILE, m_NDims, m_DimensionStep) < 0 )
+  if ( miget_dimension_separations(this->m_MincFileDims, MI_ORDER_FILE, m_NDims, m_DimensionStep) < 0 )
     {
     itkDebugMacro(<<" Could not dimension sizes");
     return;
     }
     
-  if ( miget_dimension_starts(hdims, MI_ORDER_FILE, this->m_NDims, m_DimensionStart) < 0 )
+  if ( miget_dimension_starts(this->m_MincFileDims, MI_ORDER_FILE, this->m_NDims, m_DimensionStart) < 0 )
     {
     itkDebugMacro(<<" Could not dimension sizes");
     return;
@@ -426,7 +324,7 @@ void MINCImageIO::ReadImageInformation()
     
   
   mitype_t volume_data_type;
-  if ( miget_data_type(volume, &volume_data_type) < 0 )
+  if ( miget_data_type(m_volume, &volume_data_type) < 0 )
     {
     itkDebugMacro(" Can not get volume data type!!\n");
     }
@@ -435,7 +333,7 @@ void MINCImageIO::ReadImageInformation()
   miboolean_t slice_scaling_flag=0;
   miboolean_t global_scaling_flag=0;
   
-  if ( miget_slice_scaling_flag(volume, &slice_scaling_flag) < 0 )
+  if ( miget_slice_scaling_flag(m_volume, &slice_scaling_flag) < 0 )
     {
     itkDebugMacro(" Can not get slice scaling flag!!\n");
     }
@@ -459,20 +357,6 @@ void MINCImageIO::ReadImageInformation()
     global_scaling_flag=(volume_min==valid_min && volume_max==valid_max);
   }
   
-  // analyze dimension order and decide how to restructure the data
-  midimhandle_t* apparent_dimension_order=midimhandle_t[this->m_NDims];
-
-  
-  itk::Matrix< double, 3,3 > dir_cos;
-  dir_cos.Fill(0.0);
-  dir_cos.SetIdentity();
-  
-  itk::Vector< double,3> origin;
-  itk::Vector< double,3> o_origin;
-
-  origin.Fill(0.0);
-  o_origin.Fill(0.0);
-  
   int spatial_dimension_count=0;
   
   // extract direction cosines
@@ -480,13 +364,6 @@ void MINCImageIO::ReadImageInformation()
   {
     if(this->m_DimensionIndices[i]!=-1) //this dimension is present
     {
-      std::vector< double > _dir(3)
-      miget_dimension_cosines(hdim[this->m_DimensionIndices[i]],&_dir[0]);
-      for(int j=0;j<3;j++)
-      {
-        dir_cos[j][i-1]=_dir[j];
-      }
-      this->SetDirection(i-1,_dir);
       spatial_dimension_count++;
     }
   }
@@ -496,10 +373,101 @@ void MINCImageIO::ReadImageInformation()
     itkDebugMacro(<< " minc files without spatial dimensions are not supported!");
     return;
   }
+   
+  if ( this->m_DimensionIndices[0]!=-1 && this->m_DimensionIndices[4]!=-1 )
+  {
+    itkDebugMacro(<< " 4D minc files vector dimension are not supported currently");
+    return;
+  }
+  
+  this->SetNumberOfDimensions(spatial_dimension_count);
+  
+  int numberOfComponents=1;
+  int usable_dimensions=0;
+  if(this->m_DimensionIndices[0]!=-1) // have vector dimension
+  {
+    //micopy_dimension(this->m_MincFileDims[this->m_DimensionIndices[0]],&apparent_dimension_order[usable_dimensions]);
+    this->m_MincApparentDims[usable_dimensions]=this->m_MincFileDims[this->m_DimensionIndices[0]];
+    //always use positive 
+    miset_dimension_apparent_voxel_order(this->m_MincApparentDims[usable_dimensions],MI_POSITIVE);
+    misize_t sz;
+    miget_dimension_size(this->m_MincApparentDims[usable_dimensions],&sz);
+    numberOfComponents=sz;
+    usable_dimensions++;
+  }
+  
+  if(this->m_DimensionIndices[4]!=-1) // have time dimension
+  {
+    //micopy_dimension(hdim[this->m_DimensionIndices[4]],&apparent_dimension_order[usable_dimensions]);
+    this->m_MincApparentDims[usable_dimensions]=this->m_MincFileDims[this->m_DimensionIndices[4]];
+    //always use positive 
+    miset_dimension_apparent_voxel_order(this->m_MincApparentDims[usable_dimensions],MI_POSITIVE);
+    misize_t sz;
+    miget_dimension_size(this->m_MincApparentDims[usable_dimensions],&sz);
+    numberOfComponents=sz;
+    usable_dimensions++;
+  }
+  
+  itk::Matrix< double, 3,3 > dir_cos;
+  dir_cos.Fill(0.0);
+  dir_cos.SetIdentity();
+  
+  itk::Vector< double,3> origin,sep;
+  itk::Vector< double,3> o_origin;
+  origin.Fill(0.0);
+  o_origin.Fill(0.0);
+  
+  
+  for(int i=1;i<4;i++)
+  {
+    int spatial_dimension=0;
+    if(this->m_DimensionIndices[i]!=-1) // have time dimension
+    {
+      //MINC2: bad design!
+      //micopy_dimension(hdim[this->m_DimensionIndices[i]],&apparent_dimension_order[usable_dimensions]);
+      this->m_MincApparentDims[usable_dimensions]=this->m_MincFileDims[this->m_DimensionIndices[i]];
+      //always use positive 
+      miset_dimension_apparent_voxel_order(this->m_MincApparentDims[usable_dimensions],MI_POSITIVE);
+      misize_t sz;
+      miget_dimension_size(this->m_MincApparentDims[usable_dimensions],&sz);
+      this->SetDimensions(spatial_dimension,static_cast<unsigned int>(sz));
+      
+      std::vector< double > _dir(3);
+      double _sep,_start;
+      
+      miget_dimension_separation(this->m_MincApparentDims[usable_dimensions],MI_ORDER_APPARENT,&_sep);
+      miget_dimension_cosines(this->m_MincApparentDims[usable_dimensions],&_dir[0]);
+      miget_dimension_start(this->m_MincApparentDims[usable_dimensions],MI_ORDER_APPARENT,&_start);
+      
+      for(int j=0;j<3;j++)
+        dir_cos[j][i-1]=_dir[j];
+      
+      origin[i-1]=_start;
+      sep[i-1]=_sep;
+      
+      this->SetDirection(spatial_dimension,_dir);
+      this->SetSpacing(spatial_dimension,_sep);
+      
+      spatial_dimension++;
+      usable_dimensions++;
+    }
+  }
+  
+  //Set apparent dimension order to the MINC2 api
+  if(miset_apparent_dimension_order(m_volume,usable_dimensions,this->m_MincApparentDims)<0)
+  {
+    itkDebugMacro(<<" Can't set apparent dimension order!");
+    return;
+  }
+  
+  o_origin=dir_cos*origin;
+  
+  for(int i=0;i<spatial_dimension_count;i++)
+    this->SetOrigin(i,o_origin[i]);
   
   miclass_t volume_data_class;
 
-  if ( miget_data_class(volume, &volume_data_class) < 0 )
+  if ( miget_data_class(m_volume, &volume_data_class) < 0 )
     {
     itkDebugMacro(" Could not get data class");
     return;
@@ -571,24 +539,31 @@ void MINCImageIO::ReadImageInformation()
         return;
       } //end of switch
   }
-  
-  this->ComputeStrides();
-    
+
   switch ( volume_data_class )
     {
     case MI_CLASS_REAL:
-      this->SetPixelType(SCALAR);
+      if(numberOfComponents==1)
+        this->SetPixelType(SCALAR);
+      else
+        this->SetPixelType(VECTOR);//TODO: handle more types (i.e matrix, tensor etc)
       break;
     case MI_CLASS_INT:
-      this->SetPixelType(SCALAR);
+      if(numberOfComponents==1)
+        this->SetPixelType(SCALAR);
+      else
+        this->SetPixelType(VECTOR);//TODO: handle more types (i.e matrix, tensor etc)
       break;
     case MI_CLASS_LABEL:
-      this->SetPixelType(SCALAR);
+      if(numberOfComponents==1)
+        this->SetPixelType(SCALAR);
+      else
+        this->SetPixelType(VECTOR);
       // create an array of label names and values
       // not sure how to pass this to itk yet!
       break;
     case MI_CLASS_COMPLEX:
-      m_Complex = 1;
+      //m_Complex = 1;
       this->SetPixelType(COMPLEX);
       numberOfComponents *= 2;
       break;
@@ -596,34 +571,9 @@ void MINCImageIO::ReadImageInformation()
       itkDebugMacro("Bad data class ");
       return;
     } //end of switch
-    
-    
-  this->SetNumberOfDimensions(m_NDims);
+  
   this->SetNumberOfComponents(numberOfComponents);
-
-  if ( miclose_volume(volume) < 0 )
-    {
-    // Error closing the volume
-    itkDebugMacro("Could not close file \"" << m_FileName.c_str() << "\".");
-    return;
-    }
-
-  //clean dynamic allocation
-  delete[] sizes;
-  delete[] hdims;
-}
-
-void MINCImageIO::SetDimensionName(size_t i, char *name)
-{
-  if ( name )
-    {
-    this->Modified();
-    this->m_DimensionName[i] = name;
-    }
-  else
-    {
-    return;
-    }
+  this->ComputeStrides();
 }
 
 bool MINCImageIO::CanWriteFile(const char *name)
@@ -665,96 +615,6 @@ void MINCImageIO::WriteImageInformation(void)
 {
   std::cout << "WriteImageInformation" << std::endl;
   // FIXME: implement this!
-}
-
-template< class TBuffer >
-void MINCComputeScalarRange(int itkNotUsed(
-                              Strides)[3], int Sizes[3], int nComponents, double & maxval, double & minval,
-                            TBuffer *buffer)
-{
-// This differs with ITK Journal version in that
-// no longer skipping ahead by strides, but just plodding through
-// buffer one point at a time.
-
-// FIXME: this difference is probably something that should be thought
-// through more clearly.
-// Rupert Brooks, August 23, 2007
-  double tmpminval = 1000.0;
-  double tmpmaxval = 0.0;
-  size_t idX, idY, idZ;
-
-  for ( idZ = 0; idZ < Sizes[2]; idZ++ )
-    {
-    for ( idY = 0; idY < Sizes[1]; idY++ )
-      {
-      for ( idX = 0; idX < Sizes[0] * nComponents; idX++ )
-        {
-        TBuffer val = *buffer++; //Strides[0];
-        if ( val > tmpmaxval )
-          {
-          tmpmaxval = val;
-          }
-        if ( val < tmpminval )
-          {
-          tmpminval = val;
-          }
-        }
-      //buffer += Strides[1];
-      }
-    //buffer += Strides[2];
-    }
-  maxval = tmpmaxval;
-  minval = tmpminval;
-}
-
-//void MINCImageIO::
-template< class TBuffer >
-void MINCWriteHyperSlab(mihandle_t volume,
-                        size_t ndims,
-                        mitype_t minctype,
-                        const misize_t start[],
-                        const misize_t count[],
-                        TBuffer *buffer)
-{
-  size_t i, j;
-
-  misize_t tmpstart[MINC_MAXDIM + 1];
-  misize_t tmpcount[MINC_MAXDIM + 1];
-  // calculate the number of voxels per slice
-  size_t size = 1;
-
-  for ( i = 1; i < ndims; i++ )
-    {
-    tmpstart[i] = start[i];
-
-    tmpcount[i] = count[i];
-
-    size = size * count[i];
-    }
-
-  // allocate memory for a slice
-  TBuffer *tmpbuffer = new TBuffer[size];
-  for ( i = 0; i < count[0]; i++ )
-    {
-    // set start to the current slice
-    tmpstart[0] = i;
-    tmpcount[0] = 1;
-
-    // copy the slice
-    for ( j = 0; j < size; j++ )
-      {
-      tmpbuffer[j] = buffer[j];
-      }
-
-    // write the slice
-    miset_voxel_value_hyperslab(volume, minctype,
-                                tmpstart, tmpcount, tmpbuffer);
-
-    // move on to next slice
-    buffer += size;
-    }
-
-  delete[] tmpbuffer;
 }
 
 void MINCImageIO::Write(const void *buffer)
@@ -1295,173 +1155,5 @@ void MINCImageIO::Write(const void *buffer)
   miclose_volume(volume);
 }
 
-// void MINCImageIO::XYZFromDirectionCosines(midimhandle_t *hdims, int *dim_indices, size_t *numberOfComponents)
-// {
-//   midimclass_t dim_class;
-//   double       direction_cosines[3];
-//   double       dircos[3][3] = 
-//               { { 1, 0, 0 },
-//                 { 0, 1, 0 },
-//                 { 0, 0, 1 } };
-// 
-//   // figure out present dimension in the order of either
-//   // xspace,yspace,zspace, time or xfrequency,yfrequency,zfrequency, tfrequency
-//   // --> x,y,z,t and vector-dimension
-//   size_t i = 0;
-//   size_t counter = 0;
-//   size_t counter2 = 5;
-// 
-//   for ( i = 0; i < this->m_NDims; i++ )
-//     {
-//     if ( miget_dimension_class(hdims[i], &dim_class) < 0 )
-//       {
-//       // Error getting dimension class
-//       itkDebugMacro("Could not get dim class\"" << m_FileName.c_str() << "\".");
-//       return;
-//       }
-// 
-//     switch ( dim_class )
-//       {
-//       case MI_DIMCLASS_SPATIAL:
-//       case MI_DIMCLASS_SFREQUENCY:
-//         // if none of xspace,yspace or zspace
-//         // use direction cosines to figure out which dimension is x,y,z
-//         if ( miget_dimension_cosines(hdims[i], direction_cosines) < 0 )
-//           {
-//           // Error getting dimension direction cosine
-//           itkDebugMacro("Could not getdirection cosines!");
-//           return;
-//           }
-//         // fill the dircos array for now, order x,y,z
-//         // figure out the order later
-//         dircos[0][counter] = direction_cosines[0];
-//         dircos[1][counter] = direction_cosines[1];
-//         dircos[2][counter] = direction_cosines[2];
-//         dim_indices[counter] = i;
-//         counter++;
-//         break;
-//       case MI_DIMCLASS_TIME:
-//       case MI_DIMCLASS_TFREQUENCY:
-//         dim_indices[3] = i;
-//         *numberOfComponents *= this->m_DimensionSize[i];
-//         break;
-//       // check for vector dimensions
-//       case MI_DIMCLASS_RECORD:
-//         dim_indices[4] = i;
-//         *numberOfComponents *= this->m_DimensionSize[i];
-//         break;
-//       case MI_DIMCLASS_ANY:
-//       case MI_DIMCLASS_USER:
-//         dim_indices[counter2] = i;
-//         counter2++;
-//         break;
-//         //default:
-//         // any other dimension is ignored!!
-//         //return;
-//       } // end of switch
-//     }   //end of for
-//   // fill in the itk matrix for direction cosines
-// 
-//   m_DirectionCosines.Fill(0.0);
-//   m_DirectionCosines.SetIdentity();
-//   
-//   //figure out from direction cosines which dimension is what
-//   // largest z component (3 dimensions) --> zspace
-//   // then largest y component (2 dimension) --> yspace
-//   // last remaining dimension xspace.
-//   //VF: sorry, this is not helpfull
-//   
-//   int temp;
-//   if ( counter == 3 ) // three spatial dimensions
-//     {
-//     if ( ( dircos[2][0] >= dircos[2][1] ) && ( dircos[2][0] >= dircos[2][2] ) )
-//       {
-//       // index 0 is the z dimension
-//       m_DirectionCosines[0][2] = dircos[0][0];
-//       m_DirectionCosines[1][2] = dircos[1][0];
-//       m_DirectionCosines[2][2] = dircos[2][0];
-// 
-//       if ( dircos[1][1] >= dircos[1][2] )
-//         {
-//         m_DirectionCosines[0][1] = dircos[0][1];
-//         m_DirectionCosines[1][1] = dircos[1][1];
-//         m_DirectionCosines[2][1] = dircos[2][1];
-//         m_DirectionCosines[0][0] = dircos[0][2];
-//         m_DirectionCosines[1][0] = dircos[1][2];
-//         m_DirectionCosines[2][0] = dircos[2][2];
-//         }
-//       else
-//         {
-//         temp = dim_indices[1];
-//         dim_indices[1] = dim_indices[2];
-//         dim_indices[2] = temp;
-//         m_DirectionCosines[0][1] =  dircos[0][2];
-//         m_DirectionCosines[1][1] =  dircos[1][2];
-//         m_DirectionCosines[2][1] =  dircos[2][2];
-//         m_DirectionCosines[0][0] =  dircos[0][1];
-//         m_DirectionCosines[1][0] =  dircos[1][1];
-//         m_DirectionCosines[2][0] =  dircos[2][1];
-//         }
-//       }
-//     else if ( ( dircos[2][1] >= dircos[2][0] ) && ( dircos[2][1] >= dircos[2][2] ) )
-//       {
-//       m_DirectionCosines[0][2] = dircos[0][1];
-//       m_DirectionCosines[1][2] = dircos[1][1];
-//       m_DirectionCosines[2][2] = dircos[2][1];
-//       temp = dim_indices[0];
-//       dim_indices[0] = dim_indices[1];
-//       if ( dircos[1][0] >= dircos[1][2] )
-//         {
-//         dim_indices[1] = temp;
-//         m_DirectionCosines[0][1] = dircos[0][0];
-//         m_DirectionCosines[1][1] = dircos[1][0];
-//         m_DirectionCosines[2][1] = dircos[2][0];
-//         m_DirectionCosines[0][0] = dircos[0][2];
-//         m_DirectionCosines[1][0] = dircos[1][2];
-//         m_DirectionCosines[2][0] = dircos[2][2];
-//         }
-//       else
-//         {
-//         dim_indices[1] =  dim_indices[2];
-//         dim_indices[2] = temp;
-//         m_DirectionCosines[0][1] = dircos[0][2];
-//         m_DirectionCosines[1][1] = dircos[1][2];
-//         m_DirectionCosines[2][1] = dircos[2][2];
-//         m_DirectionCosines[0][0] = dircos[0][0];
-//         m_DirectionCosines[1][0] = dircos[1][0];
-//         m_DirectionCosines[2][0] = dircos[2][0];
-//         }
-//       }
-//     else
-//       {
-//       m_DirectionCosines[0][2] = dircos[0][2];
-//       m_DirectionCosines[1][2] = dircos[1][2];
-//       m_DirectionCosines[2][2] = dircos[2][2];
-//       temp = dim_indices[0];
-//       dim_indices[0] = dim_indices[2];
-//       if ( dircos[1][0] >= dircos[1][1] )
-//         {
-//         dim_indices[2] = dim_indices[1];
-//         dim_indices[1] = temp;
-//         m_DirectionCosines[0][1] = dircos[0][0];
-//         m_DirectionCosines[1][1] = dircos[1][0];
-//         m_DirectionCosines[2][1] = dircos[2][0];
-//         m_DirectionCosines[0][0] = dircos[0][1];
-//         m_DirectionCosines[1][0] = dircos[1][1];
-//         m_DirectionCosines[2][0] = dircos[2][1];
-//         }
-//       else
-//         {
-//         dim_indices[2] = temp;
-//         m_DirectionCosines[0][0] = dircos[0][0];
-//         m_DirectionCosines[1][0] = dircos[1][0];
-//         m_DirectionCosines[2][0] = dircos[2][0];
-//         m_DirectionCosines[0][1] = dircos[0][1];
-//         m_DirectionCosines[1][1] = dircos[1][1];
-//         m_DirectionCosines[2][1] = dircos[2][1];
-//         }
-//       }
-//     }
-// }
-// 
+
 } // end namespace itk

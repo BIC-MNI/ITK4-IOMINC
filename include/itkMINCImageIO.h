@@ -113,6 +113,8 @@ protected:
   double       *m_DimensionStart;
   double       *m_DimensionStep;
   int           m_DimensionIndices[5];
+  midimhandle_t *m_MincFileDims;
+  midimhandle_t *m_MincApparentDims;
   
   // MINC2 volume handle , currently opened
   mihandle_t   m_volume;
