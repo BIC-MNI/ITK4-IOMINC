@@ -704,6 +704,8 @@ void MINCImageIO::WriteImageInformation(void)
 
 void MINCImageIO::Write(const void *buffer)
 {
+  this->WriteImageInformation();
+  
   const unsigned int nDims = this->GetNumberOfDimensions();
   const unsigned int nComp = this->GetNumberOfComponents();
 
