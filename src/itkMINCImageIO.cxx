@@ -613,546 +613,165 @@ bool MINCImageIO::CanWriteFile(const char *name)
 */
 void MINCImageIO::WriteImageInformation(void)
 {
-  std::cout << "WriteImageInformation" << std::endl;
-  // FIXME: implement this!
+  const unsigned int nDims = this->GetNumberOfDimensions();
+  const unsigned int nComp = this->GetNumberOfComponents();
+
+  CloseVolume();
+  
+  AllocateDimensions(nDims+(nComp>1?1:0));
+  
+  int minc_dimensions=0;
+  
+  if(nComp>3) //first dimension will be either vector or time
+  {
+     micreate_dimension(MItime, MI_DIMCLASS_TIME, MI_DIMATTR_REGULARLY_SAMPLED, nComp, &m_MincFileDims[minc_dimensions] );
+     minc_dimensions++;
+  } else if(nComp>1) {
+     micreate_dimension(MIvector_dimension,MI_DIMCLASS_RECORD, MI_DIMATTR_REGULARLY_SAMPLED, nComp, &m_MincFileDims[minc_dimensions] );
+     minc_dimensions++;
+  }
+  
+  micreate_dimension(MIxspace,MI_DIMCLASS_SPATIAL, MI_DIMATTR_REGULARLY_SAMPLED, GetDimensions(0), &m_MincFileDims[minc_dimensions] );
+  minc_dimensions++;
+ 
+  if(nDims > 1)
+  {
+    micreate_dimension(MIyspace,MI_DIMCLASS_SPATIAL, MI_DIMATTR_REGULARLY_SAMPLED, GetDimensions(1), &m_MincFileDims[minc_dimensions] );
+    minc_dimensions++;
+  }
+  
+  if(nDims > 2)
+  {
+    micreate_dimension(MIzspace,MI_DIMCLASS_SPATIAL, MI_DIMATTR_REGULARLY_SAMPLED, GetDimensions(2), &m_MincFileDims[minc_dimensions] );
+    minc_dimensions++;
+  }
+  
+  if(nDims > 3)
+  {
+    itkDebugMacro("Unfortunately, only up to 3D volume are supported now.");
+    return;
+  }
+
+  //allocating dimensions
+  vnl_matrix< double > dircosmatrix(3, 3);
+  dircosmatrix.set_identity();
+  vnl_vector<double> origin(3);
+  
+  for (int i = 0; i < nDims; i++ )
+    {
+    for (int j = 0; j < 3; j++ )
+      {
+      dircosmatrix[i][j] = this->GetDirection(i)[j];
+      }
+     origin[i] = this->GetOrigin(i);
+    }
+  
+  vnl_matrix< double > inverseDirectionCosines = vnl_matrix_inverse< double >(dircosmatrix);
+  origin*=inverseDirectionCosines; //transform to minc convention
+  
+  for (int i = 0; i < nDims; i++ )
+    {
+      int j=i+(nComp>1?1:0);
+      double dir_cos[3];
+      for(int k=0;k<3;k++)
+        dir_cos[k]=dircosmatrix[i][j];
+      
+      miset_dimension_separation(m_MincFileDims[j],this->GetSpacing(i));
+      miset_dimension_start(m_MincFileDims[j],origin[i]);
+      miset_dimension_cosines(m_MincFileDims[j],dir_cos);
+    }
+
+  //TODO: fix this to appropriate 
+  m_volume_type=MI_TYPE_FLOAT;
+  m_volume_class=MI_CLASS_REAL;
+  
+  if ( micreate_volume ( m_FileName.c_str(), minc_dimensions, m_MincFileDims, m_volume_type,
+                    m_volume_class, NULL, &m_volume )<0 )
+    {
+    // Error opening the volume
+    itkDebugMacro("Could not open file \"" << m_FileName.c_str() << "\".");
+    return;
+    }
+    
+ if (  micreate_volume_image ( m_volume ) <0 )
+ {
+    // Error opening the volume
+    itkDebugMacro("Could not create image in  file \"" << m_FileName.c_str() << "\".");
+    return;
+ }
+  //TODO: write out metainformation somewhere
 }
 
 void MINCImageIO::Write(const void *buffer)
 {
-//   size_t i, j;
-//   size_t ncomp;
-// 
-// // in general we cannot assume that m_original start or m_DirectionCosines exist
-// // have to recompute them
-// 
-//   // FIXME: i use a vnl_matrix here, because i know how to invert it, and the
-//   // itk::Matrix
-//   // used for the m_DirectionCosines I dont know how.  However, maybe this
-//   // matrix
-//   // should be a different type anyway, so its variable size.
-//   // This inelegant solution is Rupert being too lazy to RTFM, not for any good
-//   // reason
-//   vnl_matrix< double > dircosmatrix(3, 3);
-//   for ( i = 0; i < 3; i++ )
-//     {
-//     for ( j = 0; j < 3; j++ )
-//       {
-//       m_DirectionCosines[i][j] = this->m_Direction[j][i];
-//       dircosmatrix[i][j] = m_DirectionCosines[i][j];
-//       }
-//     }
-//   vnl_matrix< double > inverseDirectionCosines = vnl_matrix_inverse< double >(dircosmatrix);
-//   /*
-//   for( i = 0; i < 3; i++ )
-//     {
-//     m_OriginalStart[i]=0;
-//     for( j = 0; j < 3; j++ )
-//       {
-//       m_OriginalStart[i] += inverseDirectionCosines[i][j] * this->GetOrigin(j);
-//       }
-//     }
-//   */
-//   for ( i = 0; i < 3; i++ )
-//     {
-//     m_OriginalStart[i] = this->GetOrigin(i);
-//     }
-//   ncomp = this->GetNumberOfComponents();
-// 
-//   // ensure that the type is valid
-//   if ( m_Complex )
-//     {
-//     if ( this->GetComponentType() == CHAR || this->GetComponentType() == UCHAR )
-//       {
-//       itkDebugMacro("MINC does not support 8-bit complex types");
-//       return;
-//       }
-//     else if ( this->GetComponentType() == USHORT || this->GetComponentType() == UINT )
-//       {
-//       itkDebugMacro("MINC does not support unsigned complex types");
-//       return;
-//       }
-//     }
-// 
-//   // get the dimension order set by the user (copy it because
-//   // CheckDimensionOrder will modify it)
-//   char userdimorder[MINC_MAXDIM + 1];
-//   if ( this->GetDimensionOrder() != 0 )
-//     {
-//     strncpy(userdimorder, this->GetDimensionOrder(), MINC_MAXDIM);
-//     userdimorder[MINC_MAXDIM] = '\0';
-//     }
-//   else
-//     {
-//     strncpy(userdimorder, "zyx", MINC_MAXDIM);
-//     }
-// 
-//   // check the dimension order, add any dimensions that
-//   //  the users have set sizes for but which aren't in DimensionOrder
-//   if ( this->CheckDimensionOrder(userdimorder) == 0 )
-//     {
-//     return;
-//     }
-// 
-//   // three dimensions (x,y,z) are always present
-//   size_t ndims = 3;
-//   size_t vsize = 0; // vector_dimension size
-//   size_t usize = 0; // produce of all user defined dimensions
-//   size_t tsize = 0; // time dimension size
-//   size_t xsize = this->GetDimensions(0);
-//   size_t ysize = this->GetDimensions(1);
-//   size_t zsize = this->GetDimensions(2);
-// 
-//   const char *vname = "vector_dimension";
-//   const char *tname = "tspace";
-//   const char *xname = "xspace";
-//   const char *yname = "yspace";
-//   const char *zname = "zspace";
-// 
-//   // update the names of dimensions if the user has specified
-//   // e.g. xfrequency instead of xspace, and also get the sizes
-//   // for all non-spatial dimensions
-//   for ( i = 0; i <= MINC_MAXDIM; i++ )
-//     {
-//     if ( this->m_DimensionName[i] )
-//       {
-//       // the first char in the name
-//       int dimchar = this->m_DimensionName[i][0];
-// 
-//       if ( dimchar == 'v' )
-//         { // add v dimension
-//         vsize = this->m_DimensionSize[i];
-//         vname = this->m_DimensionName[i];
-//         if ( vsize > 0 )
-//           {
-//           ndims++;
-//           }
-//         }
-//       else if ( dimchar == 't' )
-//         { // add t dimension
-//         tsize = this->m_DimensionSize[i];
-//         tname = this->m_DimensionName[i];
-//         if ( tsize > 0 )
-//           {
-//           ndims++;
-//           }
-//         }
-//       else if ( dimchar == 'x' )
-//         {
-//         // xsize is calculated from extent
-//         xname = this->m_DimensionName[i];
-//         }
-//       else if ( dimchar == 'y' )
-//         {
-//         // ysize is calculated from extent
-//         yname = this->m_DimensionName[i];
-//         }
-//       else if ( dimchar == 'z' )
-//         {
-//         // zsize is calculated from extent
-//         zname = this->m_DimensionName[i];
-//         }
-//       else
-//         { // add other dimensions as vector dimensions
-//         if ( this->m_DimensionSize[i] > 0 )
-//           {
-//           if ( usize == 0 )
-//             {
-//             usize = this->m_DimensionSize[i];
-//             }
-//           else
-//             {
-//             usize *= this->m_DimensionSize[i];
-//             }
-//           ndims++;
-//           }
-//         }
-//       }
-//     }
-// 
-//   // csize depends on whether the data is complex
-//   size_t csize = ( m_Complex ? 2 : 1 );
-//   // check the number of components: the product of the sizes of
-//   // the complex, vector, and time dimensions should equal the
-//   // number of scalar components in the vtkImageData
-//   if ( ( tsize == 0 ? 1 : tsize ) * ( vsize == 0 ? 1 : vsize )
-//        * ( usize == 0 ? 1 : usize ) * csize != ncomp )
-//     {
-//     // the number of components does not match extra dimension sizes,
-//     // so try to make a vector dimension to account for this.
-// 
-//     // calculate the product of the dimension sizes except for vsize
-//     size_t dimprod = ( usize == 0 ? 1 : usize ) * ( tsize == 0 ? 1 : tsize ) * csize;
-// 
-//     if ( ncomp % dimprod != 0 )
-//       {
-//       itkDebugMacro(
-//         "Write: Product of non-spatial dimension sizes does not match number of scalar components: " << tsize << "*"
-//                                                                                                      << usize
-//         * csize << "!=" << ncomp);
-//       return;
-//       }
-// 
-//     // add the vector dimension if it was missing
-//     if ( vsize == 0 )
-//       {
-//       ndims++;
-//       // add to userdimorder unless it was already there
-//       char *cp;
-//       for ( cp = userdimorder; *cp != '\0'; cp++ )
-//         {
-//         if ( *cp == 'v' )
-//           {
-//           break;
-//           }
-//         }
-//       if ( *cp == '\0' ) // if didn't find 'v'
-//         {
-//         *cp++ = 'v';
-//         *cp++ = '\0';
-//         }
-//       }
-// 
-//     // calcuate the proper size of the vector dimension
-//     vsize = ncomp / dimprod;
-//     }
-// 
-//   // remove any unused dimensions from userdimorder
-//   i = 0;
-//   char *cp;
-//   for ( cp = userdimorder; *cp != '\0'; cp++ )
-//     {
-//     int dimchar = *cp;
-//     if ( dimchar == xname[0] || dimchar == yname[0] || dimchar == zname[0] )
-//       {
-//       userdimorder[i++] = dimchar;
-//       }
-//     else if ( ( dimchar == tname[0] && tsize != 0 )
-//               || ( dimchar == vname[0] && vsize != 0 ) )
-//       {
-//       userdimorder[i++] = dimchar;
-//       }
-//     else
-//       {
-//       for ( j = 0; j <= MINC_MAXDIM; j++ )
-//         {
-//         if ( this->m_DimensionName[j] && this->m_DimensionName[j][0] == dimchar )
-//           {
-//           userdimorder[i++] = dimchar;
-//           break;
-//           }
-//         }
-//       }
-//     }
-// 
-//   if ( i != ndims )
-//     {
-//     itkDebugMacro("Failed sanity check: i != ndims ("
-//                   << i << "!=" << ndims << ")");
-//     return;
-//     }
-// 
-//   userdimorder[i++] = '\0'; // terminate the string
-// 
-//   int           result = 0;
-//   mihandle_t    volume;
-//   midimhandle_t dim[MINC_MAXDIM + 1];
-//   misize_t offsets[MINC_MAXDIM + 1];
-//   misize_t counts[MINC_MAXDIM + 1];
-//   // create the MINC dimensions in the file order given by userdimorder,
-//   // remove any characters from userdimorder that don't match a used
-//   // dimension.
-//   for ( i = 0; i < ndims; i++ )
-//     {
-//     unsigned long dimsize = 0;
-//     midimclass_t  dimclass = MI_DIMCLASS_ANY;
-//     const char *  dimname = 0;
-//     int           dimchar = userdimorder[i];
-//     double        dimseparation = 1.0;
-//     double        dimstart = 0.0;
-// 
-//     if ( dimchar == xname[0] || dimchar == yname[0] || dimchar == zname[0] )
-//       { // spatial or spatial frequency
-//       if ( dimchar == xname[0] )
-//         {
-//         dimname = xname;
-//         dimsize = xsize;
-//         dimseparation = this->GetSpacing(0);
-//         dimstart = m_OriginalStart[0];
-//         }
-//       else if ( dimchar == yname[0] )
-//         {
-//         dimname = yname;
-//         dimsize = ysize;
-//         dimseparation = this->GetSpacing(1);
-//         dimstart = m_OriginalStart[1];
-//         }
-//       else /* if (dimchar == zname[0]) */
-//         {
-//         dimname = zname;
-//         dimsize = zsize;
-//         dimseparation = this->GetSpacing(2);
-//         dimstart = m_OriginalStart[2];
-//         }
-//       dimclass = MI_DIMCLASS_SPATIAL;
-//       if ( strcmp(&dimname[1], "frequency") == 0 )
-//         {
-//         dimclass = MI_DIMCLASS_SFREQUENCY;
-//         }
-//       }
-//     else if ( dimchar == tname[0] && tsize != 0 )
-//       { // time or tfrequency
-//       dimname = tname;
-//       dimsize = tsize;
-//       dimclass = MI_DIMCLASS_TIME;
-//       if ( strcmp(&dimname[1], "frequency") == 0 )
-//         {
-//         dimclass = MI_DIMCLASS_TFREQUENCY;
-//         }
-//       }
-//     else if ( dimchar == vname[0] && vsize != 0 )
-//       {                              // vector dimension
-//       dimname = vname;               // default is "vector_dimension"
-//       dimsize = vsize;               // default is all leftovers
-//       dimclass = MI_DIMCLASS_RECORD; // unknown
-//       }
-//     else
-//       { // other dimensions
-//         // search through user-defined dimensions
-//       for ( j = 0; j <= MINC_MAXDIM; j++ )
-//         {
-//         if ( this->m_DimensionName[j] && this->m_DimensionName[j][0] == dimchar )
-//           {
-//           dimname = this->m_DimensionName[j];
-//           dimsize = this->m_DimensionSize[j];
-//           dimclass = MI_DIMCLASS_USER; // unknown
-//           }
-//         }
-//       }
-// 
-//     //create MINC.0 file
-//     micreate_dimension(dimname, dimclass, MI_DIMATTR_REGULARLY_SAMPLED, dimsize, &dim[i]);
-// 
-//     // modify some parameters
-//     if ( dimclass == MI_DIMCLASS_SPATIAL || dimclass == MI_DIMCLASS_SFREQUENCY )
-//       {
-//       miset_dimension_units(dim[i], "mm");
-//       miset_dimension_start(dim[i], /* MI_ORDER_APPARENT, */ dimstart);
-//       miset_dimension_separation(dim[i], /* MI_ORDER_APPARENT,*/ dimseparation);
-// 
-//       double dircos[3];
-//       if ( dimname[0] == 'x' )
-//         {
-//         dircos[0] = m_DirectionCosines[0][0];
-//         dircos[1] = m_DirectionCosines[1][0];
-//         dircos[2] = m_DirectionCosines[2][0];
-//         }
-//       else if ( dimname[0] == 'y' )
-//         {
-//         dircos[0] = m_DirectionCosines[0][1];
-//         dircos[1] = m_DirectionCosines[1][1];
-//         dircos[2] = m_DirectionCosines[2][1];
-//         }
-//       else if ( dimname[0] == 'z' )
-//         {
-//         dircos[0] = m_DirectionCosines[0][2];
-//         dircos[1] = m_DirectionCosines[1][2];
-//         dircos[2] = m_DirectionCosines[2][2];
-//         }
-// 
-//       miset_dimension_cosines(dim[i], dircos);
-//       }
-//     else if ( dimclass == MI_DIMCLASS_TIME || dimclass == MI_DIMCLASS_TFREQUENCY )
-//       {
-//       miset_dimension_units(dim[i], "s");
-//       }
-//     }
-// 
-//   // set the file data type
-//   mitype_t minctype;
-//   switch ( this->GetComponentType() )
-//     {
-//     case CHAR:
-//       minctype = MI_TYPE_BYTE;
+  const unsigned int nDims = this->GetNumberOfDimensions();
+  const unsigned int nComp = this->GetNumberOfComponents();
+
+  misize_t *start=new misize_t[nDims+(nComp>1?1:0)];
+  misize_t *count=new misize_t[nDims+(nComp>1?1:0)];
+  
+  if(nComp>1)
+  {
+    start[0]=0;
+    count[0]=nComp;
+  }
+  
+ for ( unsigned int i = 0; i < nDims; i++ )
+  {
+  if ( i < m_IORegion.GetImageDimension() )
+    {
+    start[i+(nComp>1?1:0)] = m_IORegion.GetIndex()[i];
+    count[i+(nComp>1?1:0)] = m_IORegion.GetSize()[i];
+    }
+  else
+    {
+    start[i+(nComp>1?1:0)] = 0;
+    count[i+(nComp>1?1:0)] = 1;
+    }
+  }
+  mitype_t volume_data_type=MI_TYPE_UBYTE;
+  
+  switch(this->GetComponentType())
+  {
+    case UCHAR:
+      volume_data_type=MI_TYPE_UBYTE;
+      break;
+    case CHAR:
+      volume_data_type=MI_TYPE_BYTE;
+      break;
+    case USHORT:
+      volume_data_type=MI_TYPE_USHORT;
+      break;
+    case SHORT:
+      volume_data_type=MI_TYPE_SHORT;
+      break;
+    case UINT:  
+      volume_data_type=MI_TYPE_UINT;
+      break;
+    case INT:
+      volume_data_type=MI_TYPE_INT;
+      break;
+//     case ULONG://TODO: make sure we are cross-platform here!
+//       volume_data_type=MI_TYPE_ULONG;
 //       break;
-//     case UCHAR:
-//       minctype = MI_TYPE_UBYTE;
+//     case LONG://TODO: make sure we are cross-platform here!
+//       volume_data_type=MI_TYPE_LONG;
 //       break;
-//     case SHORT:
-//       minctype = MI_TYPE_SHORT;
-//       break;
-//     case USHORT:
-//       minctype = MI_TYPE_USHORT;
-//       break;
-//     case INT:
-//       minctype = MI_TYPE_INT;
-//       break;
-//     case UINT:
-//       minctype = MI_TYPE_UINT;
-//       break;
-//     case FLOAT:
-//       minctype = MI_TYPE_FLOAT;
-//       break;
-//     case DOUBLE:
-//       minctype = MI_TYPE_DOUBLE;
-//       break;
-//     default:
-//       itkDebugMacro("Bad data type ");
-//       return;
-//     } //end of switch
-// 
-//   // find the class
-//   miclass_t mincclass = MI_CLASS_REAL;
-//   if ( m_Complex )
-//     {
-//     mincclass = MI_CLASS_COMPLEX;
-//     }
-// 
-//   result = micreate_volume(m_FileName.c_str(), ndims, dim, minctype, mincclass, NULL, &volume);
-//   if ( result >= 0 )
-//     {
-//     result = micreate_volume_image(volume);
-//     }
-//   // check for failed file open
-//   if ( result < 0 )
-//     {
-//     for ( i = 0; i < ndims; i++ )
-//       {
-//       mifree_dimension_handle(dim[i]);
-//       }
-//     itkDebugMacro( "Couldn't open minc file " << m_FileName.c_str() );
-//     return;
-//     }
-//   // set the apparent order before writing hyperslabs
-//   const char *dimnames[MINC_MAXDIM + 1];
-//   i = 0;
-//   dimnames[i] = zname; counts[i] = zsize; offsets[i++] = 0;
-//   dimnames[i] = yname; counts[i] = ysize; offsets[i++] = 0;
-//   dimnames[i] = xname; counts[i] = xsize; offsets[i++] = 0;
-//   if ( tsize != 0 )
-//     { // add time if it exists
-//     dimnames[i] = tname; counts[i] = tsize; offsets[i++] = 0;
-//     }
-//   // add other dimensions
-//   for ( j = 0; j <= MINC_MAXDIM; j++ )
-//     {
-//     if ( this->m_DimensionName[j]
-//          && strcmp(this->m_DimensionName[j], zname) != 0
-//          && strcmp(this->m_DimensionName[j], yname) != 0
-//          && strcmp(this->m_DimensionName[j], xname) != 0
-//          && strcmp(this->m_DimensionName[j], tname) != 0
-//          && strcmp(this->m_DimensionName[j], vname) != 0 )
-//       {
-//       dimnames[i] = this->m_DimensionName[j];
-//       counts[i] = this->m_DimensionSize[j];
-//       offsets[i++] = 0;
-//       }
-//     }
-//   // finally add a vector_dimension if we had to create one
-//   if ( vsize != 0 )
-//     {
-//     dimnames[i] = vname;
-//     counts[i] = vsize;
-//     offsets[i++] = 0;
-//     }
-//   // convert to string to compare to userdimorder
-//   char dimorder[MINC_MAXDIM + 1];
-//   for ( i = 0; i < ndims; i++ )
-//     {
-//     dimorder[i] = dimnames[i][0];
-//     }
-//   dimorder[ndims] = '\0';
-// 
-//   if ( strcmp(dimorder, userdimorder) != 0 )
-//     {
-//     miset_apparent_dimension_order_by_name(volume, ndims, (char **)dimnames);
-//     }
-// 
-//   // writing data in slice by slice
-//   switch ( this->GetComponentType() )
-//     {
-//     case CHAR:
-//       minctype = MI_TYPE_BYTE;
-//       MINCWriteHyperSlab(volume, ndims, minctype, offsets, counts, (char *)buffer);
-//       break;
-//     case UCHAR:
-//       minctype = MI_TYPE_UBYTE;
-//       MINCWriteHyperSlab(volume, ndims, minctype, offsets, counts, (unsigned char *)buffer);
-//       break;
-//     case SHORT:
-//       minctype = MI_TYPE_SHORT;
-//       MINCWriteHyperSlab(volume, ndims, minctype, offsets, counts, (short *)buffer);
-//       break;
-//     case USHORT:
-//       minctype = MI_TYPE_USHORT;
-//       MINCWriteHyperSlab(volume, ndims, minctype, offsets, counts, (unsigned short *)buffer);
-//       break;
-//     case INT:
-//       minctype = MI_TYPE_INT;
-//       MINCWriteHyperSlab(volume, ndims, minctype, offsets, counts, (int *)buffer);
-//       break;
-//     case UINT:
-//       minctype = MI_TYPE_UINT;
-//       MINCWriteHyperSlab(volume, ndims, minctype, offsets, counts, (unsigned int *)buffer);
-//       break;
-//     case FLOAT:
-//       minctype = MI_TYPE_FLOAT;
-//       MINCWriteHyperSlab(volume, ndims, minctype, offsets, counts, (float *)buffer);
-//       break;
-//     case DOUBLE:
-//       minctype = MI_TYPE_DOUBLE;
-//       MINCWriteHyperSlab(volume, ndims, minctype, offsets, counts, (double *)buffer);
-//       break;
-//     default:
-//       itkDebugMacro("Bad data type ");
-//       return;
-//     } //end of switch
-// 
-//   // set the min/max
-//   if ( mincclass == MI_CLASS_REAL
-//        && minctype != MI_TYPE_FLOAT && minctype != MI_TYPE_DOUBLE )
-//     {
-//     // need to calculate the min/max for the specified extent
-//     double minval, maxval;
-//     int    Strides[3];
-//     Strides[0] = m_Strides[0];
-//     Strides[1] = m_Strides[1];
-//     Strides[2] = m_Strides[2];
-//     int Sizes[3];
-//     /* returns empty !??
-//     Sizes[0] = this->m_DimensionSize[0];
-//     Sizes[1] = this->m_DimensionSize[1];
-//     Sizes[2] = this->m_DimensionSize[2];*/
-//     Sizes[0] = this->GetDimensions(0);
-//     Sizes[1] = this->GetDimensions(1);
-//     Sizes[2] = this->GetDimensions(2);
-//     switch ( minctype )
-//       {
-//       case MI_TYPE_BYTE:
-//         MINCComputeScalarRange(Strides, Sizes, this->GetNumberOfComponents(), maxval, minval, (char *)buffer);
-//         break;
-//       case MI_TYPE_UBYTE:
-//         MINCComputeScalarRange(Strides, Sizes, this->GetNumberOfComponents(), maxval, minval, (unsigned char *)buffer);
-//         break;
-//       case MI_TYPE_SHORT:
-//         MINCComputeScalarRange(Strides, Sizes, this->GetNumberOfComponents(), maxval, minval, (short *)buffer);
-//         break;
-//       case MI_TYPE_USHORT:
-//         MINCComputeScalarRange(Strides, Sizes, this->GetNumberOfComponents(), maxval, minval, (unsigned short *)buffer);
-//         break;
-//       case MI_TYPE_INT:
-//         MINCComputeScalarRange(Strides, Sizes, this->GetNumberOfComponents(), maxval, minval, (int *)buffer);
-//         break;
-//       case MI_TYPE_UINT:
-//         MINCComputeScalarRange(Strides, Sizes, this->GetNumberOfComponents(), maxval, minval, (unsigned int *)buffer);
-//         break;
-//       default:
-//         itkDebugMacro("Bad data type ");
-//         return;
-//       } //end of switch
-//     miset_volume_valid_range(volume, maxval, minval);
-//     miset_volume_range(volume, maxval * m_Scale + m_Shift, minval * m_Scale + m_Shift);
-//     }
-//   miclose_volume(volume);
+    case FLOAT://TODO: make sure we are cross-platform here!
+      volume_data_type=MI_TYPE_FLOAT;
+      break;
+    case DOUBLE://TODO: make sure we are cross-platform here!
+      volume_data_type=MI_TYPE_DOUBLE;
+      break;
+    default:
+      itkDebugMacro(<<"Could read datatype " << this->GetComponentType() );
+      return;
+  }
+  
+  if ( miset_real_value_hyperslab(m_volume, volume_data_type, start, count, const_cast<void*>( buffer) ) < 0 )
+    {
+    itkDebugMacro(" Can not set real value hyperslab!!\n");
+    }
 }
 
 

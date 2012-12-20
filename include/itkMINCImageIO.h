@@ -115,6 +115,9 @@ protected:
   int           m_DimensionIndices[5];
   midimhandle_t *m_MincFileDims;
   midimhandle_t *m_MincApparentDims;
+  mitype_t      m_volume_type;
+  miclass_t     m_volume_class;
+  
   
   // MINC2 volume handle , currently opened
   mihandle_t   m_volume;
