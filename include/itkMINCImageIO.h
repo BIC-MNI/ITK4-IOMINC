@@ -117,7 +117,6 @@ protected:
   // MINC2 volume handle , currently opened
   mihandle_t   m_volume;
 
-  // 
   MatrixType m_DirectionCosines;
   // complex type images, composed of complex numbers
   //int m_Complex;

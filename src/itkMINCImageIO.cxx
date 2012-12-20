@@ -388,15 +388,15 @@ void MINCImageIO::ReadImageInformation()
 
     this->m_DimensionName[i] = name;
     if(!strcmp(name,MIxspace) || !strcmp(name,MIxfrequency)) //this is X space
-      m_DimensionIndices[1]=i;
+      this->m_DimensionIndices[1]=i;
     else if(!strcmp(name,MIyspace) || !strcmp(name,MIyfrequency)) //this is Y space
-      m_DimensionIndices[2]=i;
+      this->m_DimensionIndices[2]=i;
     else if(!strcmp(name,MIzspace) || !strcmp(name,MIzfrequency)) //this is Z space
-      m_DimensionIndices[3]=i;
+      this->m_DimensionIndices[3]=i;
     else if(!strcmp(name,MIvector_dimension) ) //this is vector space
-      m_DimensionIndices[0]=i;
+      this->m_DimensionIndices[0]=i;
     else if(!strcmp(name,MItime) || !strcmp(name,MItfrequency)) //this is time space
-      m_DimensionIndices[4]=i;
+      this->m_DimensionIndices[4]=i;
     else 
       {
       itkDebugMacro(<<"Unsupported MINC dimension:"<<name);
@@ -424,7 +424,6 @@ void MINCImageIO::ReadImageInformation()
     return;
     }
     
-  // analyze dimension order and decide how to restructure the data
   
   mitype_t volume_data_type;
   if ( miget_data_type(volume, &volume_data_type) < 0 )
@@ -458,6 +457,44 @@ void MINCImageIO::ReadImageInformation()
       itkDebugMacro(" Can not get volume range!!\n");
     }
     global_scaling_flag=(volume_min==valid_min && volume_max==valid_max);
+  }
+  
+  // analyze dimension order and decide how to restructure the data
+  midimhandle_t* apparent_dimension_order=midimhandle_t[this->m_NDims];
+
+  
+  itk::Matrix< double, 3,3 > dir_cos;
+  dir_cos.Fill(0.0);
+  dir_cos.SetIdentity();
+  
+  itk::Vector< double,3> origin;
+  itk::Vector< double,3> o_origin;
+
+  origin.Fill(0.0);
+  o_origin.Fill(0.0);
+  
+  int spatial_dimension_count=0;
+  
+  // extract direction cosines
+  for(int i=1;i<4;i++)
+  {
+    if(this->m_DimensionIndices[i]!=-1) //this dimension is present
+    {
+      std::vector< double > _dir(3)
+      miget_dimension_cosines(hdim[this->m_DimensionIndices[i]],&_dir[0]);
+      for(int j=0;j<3;j++)
+      {
+        dir_cos[j][i-1]=_dir[j];
+      }
+      this->SetDirection(i-1,_dir);
+      spatial_dimension_count++;
+    }
+  }
+  
+  if ( spatial_dimension_count==0 ) // sorry, this is metaphysical question
+  {
+    itkDebugMacro(<< " minc files without spatial dimensions are not supported!");
+    return;
   }
   
   miclass_t volume_data_class;
@@ -1256,10 +1293,6 @@ void MINCImageIO::Write(const void *buffer)
     miset_volume_range(volume, maxval * m_Scale + m_Shift, minval * m_Scale + m_Shift);
     }
   miclose_volume(volume);
-//   for ( i = 0; i < ndims; i++ )
-//     {
-//     mifree_dimension_handle(dim[i]);
-//     }
 }
 
 // void MINCImageIO::XYZFromDirectionCosines(midimhandle_t *hdims, int *dim_indices, size_t *numberOfComponents)
