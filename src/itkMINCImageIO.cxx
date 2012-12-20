@@ -752,12 +752,23 @@ void MINCImageIO::WriteImageInformation(void)
   //TODO: write out metainformation somewhere
 }
 
+
+template<class T> void get_buffer_min_max(const void* _buffer,size_t len,double &buf_min,double &buf_max)
+{
+  const T* buf=static_cast<const T*>(_buffer);
+  buf_min=buf_max=buf[0];
+  for(size_t i=0;i<len;i++)
+  {
+    if(buf[i]<(double)buf_min) buf_min=(double)buf[i];
+    if(buf[i]>(double)buf_max) buf_max=(double)buf[i];
+  }
+}
+
 void MINCImageIO::Write(const void *buffer)
 {
-  this->WriteImageInformation();
-  
   const unsigned int nDims = this->GetNumberOfDimensions();
   const unsigned int nComp = this->GetNumberOfComponents();
+  size_t buffer_length=1;
 
   misize_t *start=new misize_t[nDims+(nComp>1?1:0)];
   misize_t *count=new misize_t[nDims+(nComp>1?1:0)];
@@ -766,6 +777,7 @@ void MINCImageIO::Write(const void *buffer)
   {
     start[0]=0;
     count[0]=nComp;
+    buffer_length*=nComp;
   }
   
  for ( unsigned int i = 0; i < nDims; i++ )
@@ -774,6 +786,7 @@ void MINCImageIO::Write(const void *buffer)
     {
     start[i+(nComp>1?1:0)] = m_IORegion.GetIndex()[i];
     count[i+(nComp>1?1:0)] = m_IORegion.GetSize()[i];
+    buffer_length*=m_IORegion.GetSize()[i];
     }
   else
     {
@@ -781,27 +794,35 @@ void MINCImageIO::Write(const void *buffer)
     count[i+(nComp>1?1:0)] = 1;
     }
   }
+  
+  double buffer_min,buffer_max;
   mitype_t volume_data_type=MI_TYPE_UBYTE;
   
   switch(this->GetComponentType())
   {
     case UCHAR:
       volume_data_type=MI_TYPE_UBYTE;
+      get_buffer_min_max<unsigned char>(buffer,buffer_length,buffer_min,buffer_max);
       break;
     case CHAR:
       volume_data_type=MI_TYPE_BYTE;
+      get_buffer_min_max<char>(buffer,buffer_length,buffer_min,buffer_max);
       break;
     case USHORT:
       volume_data_type=MI_TYPE_USHORT;
+      get_buffer_min_max<unsigned short>(buffer,buffer_length,buffer_min,buffer_max);
       break;
     case SHORT:
       volume_data_type=MI_TYPE_SHORT;
+      get_buffer_min_max<short>(buffer,buffer_length,buffer_min,buffer_max);
       break;
     case UINT:  
       volume_data_type=MI_TYPE_UINT;
+      get_buffer_min_max<unsigned int>(buffer,buffer_length,buffer_min,buffer_max);
       break;
     case INT:
       volume_data_type=MI_TYPE_INT;
+      get_buffer_min_max<int>(buffer,buffer_length,buffer_min,buffer_max);
       break;
 //     case ULONG://TODO: make sure we are cross-platform here!
 //       volume_data_type=MI_TYPE_ULONG;
@@ -811,14 +832,23 @@ void MINCImageIO::Write(const void *buffer)
 //       break;
     case FLOAT://TODO: make sure we are cross-platform here!
       volume_data_type=MI_TYPE_FLOAT;
+      get_buffer_min_max<float>(buffer,buffer_length,buffer_min,buffer_max);
       break;
     case DOUBLE://TODO: make sure we are cross-platform here!
       volume_data_type=MI_TYPE_DOUBLE;
+      get_buffer_min_max<double>(buffer,buffer_length,buffer_min,buffer_max);
       break;
     default:
       itkDebugMacro(<<"Could read datatype " << this->GetComponentType() );
       return;
   }
+  this->WriteImageInformation();
+  
+  //by default valid range will be equal to range, to avoid scaling
+  miset_volume_valid_range(m_volume,buffer_max,buffer_min);
+  miset_volume_range(m_volume,buffer_max,buffer_min);
+  
+  
   
   if ( miset_real_value_hyperslab(m_volume, volume_data_type, start, count, const_cast<void*>( buffer) ) < 0 )
     {
