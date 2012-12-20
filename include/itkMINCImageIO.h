@@ -39,8 +39,8 @@ namespace itk
 /** \class MINCImageIO
  *
  * \author Leila Baghdadi
- * \brief Class that defines how to read MINC file format. 
- * 
+ * \brief Class that defines how to read MINC file format.
+ *
  * Note, like ITK, MINC is N dimensional and dimensions
  * can be submitted in any arbitrary order. Here we make sure the
  * dimensions are ordered as xspace, yspace, zspace, time and
@@ -107,27 +107,27 @@ protected:
   int  m_NDims; /*Number of dimensions*/
 
   // dimension size and start and step, in FILE ORDER!
-  
-  const char  **m_DimensionName; 
+
+  const char  **m_DimensionName;
   misize_t     *m_DimensionSize;
   double       *m_DimensionStart;
   double       *m_DimensionStep;
   int           m_DimensionIndices[5];
-  
+
   // MINC2 volume handle , currently opened
   mihandle_t   m_volume;
 
-  // 
+  //
   MatrixType m_DirectionCosines;
   // complex type images, composed of complex numbers
   //int m_Complex;
-  
+
   // will assign m_NDims and allocate all internal buffers to hold the information
   void AllocateDimensions(int nDims);
-  
+
   // cleanup internal buffers
   void CleanupDimensions(void);
-  
+
   // close existing volume, cleanup internal structures
   void CloseVolume(void);
 

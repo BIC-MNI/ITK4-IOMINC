@@ -1,7 +1,7 @@
 /*=========================================================================
  *
  *  Copyright Vladimir S. FONOV
- * 
+ *
  *  Based on itkHDF5ImageIOTest.cxx
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");

@@ -30,7 +30,7 @@ bool MINCImageIO::CanReadFile(const char *file)
     itkDebugMacro(<< "No filename specified.");
     return false;
     }
-    
+
   std::string::size_type mncPos = filename.rfind(".mnc");
   if ( (mncPos != std::string::npos)
 	&& (mncPos == filename.length() - 4) )
@@ -51,7 +51,7 @@ bool MINCImageIO::CanReadFile(const char *file)
     {
     return true;
     }
-  
+
   mncPos = filename.rfind(".MNC2");
   if ( (mncPos != std::string::npos)
 	&& (mncPos == filename.length() - 5) )
@@ -60,7 +60,7 @@ bool MINCImageIO::CanReadFile(const char *file)
     }
 
 //   mihandle_t volume;
-// 
+//
 //   if ( miopen_volume(file, MI2_OPEN_READ, &volume) < 0 )
 //     {
 //     itkDebugMacro(<< " Can not open File:" << file << "\n");
@@ -263,33 +263,33 @@ void MINCImageIO::CleanupDimensions(void)
        free(this->m_DimensionName[i]);
      this->m_DimensionName[i]=NULL;
     }
-    
+
   if(this->m_DimensionName) delete[] this->m_DimensionName;
   if(this->m_DimensionSize) delete[] this->m_DimensionSize;
   if(this->m_DimensionStart) delete[] this->m_DimensionStart;
   if(this->m_DimensionStep) delete[] this->m_DimensionStep;
   if(this->m_DimensionIndices) delete[] this->m_DimensionIndices;
-  
+
   this->m_DimensionName  = NULL;
   this->m_DimensionSize  = NULL;
   this->m_DimensionStart = NULL;
   this->m_DimensionStep  = NULL;
   this->m_DimensionIndices = NULL;
- 
+
 }
 
 
 void MINCImageIO::AllocateDimensions(int nDims)
 {
   this->CleanupDimensions();
-  
+
   m_NDims=nDims;
-  
+
   this->m_DimensionName  = new const char*[m_NDims];
   this->m_DimensionSize  = new misize_t[m_NDims];
   this->m_DimensionStart = new double[m_NDims];
   this->m_DimensionStep  = new double[m_NDims];
-  
+
   for ( int i = 0; i < this->m_NDims; i++ )
     {
     this->m_DimensionName[i]  = NULL;
@@ -297,12 +297,12 @@ void MINCImageIO::AllocateDimensions(int nDims)
     this->m_DimensionStart[i] = 0.0;
     this->m_DimensionStep[i]  = 0.0;
     }
-    
+
   for ( int i = 0; i < sizeof(m_DimensionIndices) ; i++ )
   {
     this->m_DimensionIndices[i] = -1;
   }
-  
+
 }
 
 // close existing volume, cleanup internal structures
@@ -311,7 +311,7 @@ void MINCImageIO::CloseVolume(void)
   if( m_volume )
     miclose_volume( m_volume );
   m_volume = NULL;
-  
+
   this->CleanupDimensions();
 }
 
@@ -325,7 +325,7 @@ MINCImageIO::MINCImageIO()
 
   m_Complex = 0;
   m_volume = NULL;
-  
+
   for ( int i = 0; i < sizeof(m_DimensionIndices) ; i++ )
   {
     this->m_DimensionIndices[i] = -1;
@@ -364,8 +364,8 @@ void MINCImageIO::ReadImageInformation()
     return;
     }
   this->AllocateDimensions(ndims);
-  
- 
+
+
   // get dimension handles in FILE ORDER (i.e, the order as they are
   // submitted to file)
   midimhandle_t *hdims = new midimhandle_t[m_NDims];
@@ -397,7 +397,7 @@ void MINCImageIO::ReadImageInformation()
       m_DimensionIndices[0]=i;
     else if(!strcmp(name,MItime) || !strcmp(name,MItfrequency)) //this is time space
       m_DimensionIndices[4]=i;
-    else 
+    else
       {
       itkDebugMacro(<<"Unsupported MINC dimension:"<<name);
       return;
@@ -411,21 +411,21 @@ void MINCImageIO::ReadImageInformation()
     itkDebugMacro("Could not get dimension sizes!");
     return;
     }
- 
+
   if ( miget_dimension_separations(hdims, MI_ORDER_FILE, m_NDims, m_DimensionStep) < 0 )
     {
     itkDebugMacro(<<" Could not dimension sizes");
     return;
     }
-    
+
   if ( miget_dimension_starts(hdims, MI_ORDER_FILE, this->m_NDims, m_DimensionStart) < 0 )
     {
     itkDebugMacro(<<" Could not dimension sizes");
     return;
     }
-    
+
   // analyze dimension order and decide how to restructure the data
-  
+
   mitype_t volume_data_type;
   if ( miget_data_type(volume, &volume_data_type) < 0 )
     {
@@ -435,12 +435,12 @@ void MINCImageIO::ReadImageInformation()
   // find out whether the data has slice scaling
   miboolean_t slice_scaling_flag=0;
   miboolean_t global_scaling_flag=0;
-  
+
   if ( miget_slice_scaling_flag(volume, &slice_scaling_flag) < 0 )
     {
     itkDebugMacro(" Can not get slice scaling flag!!\n");
     }
-    
+
   //voxel valid range
   double valid_min,valid_max;
   //get the voxel valid range
@@ -448,7 +448,7 @@ void MINCImageIO::ReadImageInformation()
   {
     itkDebugMacro(" Can not get volume valid range!!\n");
   }
-  
+
   //real volume range, only awailable when slice scaling is off
   double volume_min=0.0,volume_max=1.0;
   if( !slice_scaling_flag )
@@ -459,7 +459,7 @@ void MINCImageIO::ReadImageInformation()
     }
     global_scaling_flag=(volume_min==valid_min && volume_max==valid_max);
   }
-  
+
   miclass_t volume_data_class;
 
   if ( miget_data_class(volume, &volume_data_class) < 0 )
@@ -467,7 +467,7 @@ void MINCImageIO::ReadImageInformation()
     itkDebugMacro(" Could not get data class");
     return;
     }
-    
+
   // set the file data type
   if(slice_scaling_flag || global_scaling_flag)
   {
@@ -489,7 +489,7 @@ void MINCImageIO::ReadImageInformation()
         this->SetComponentType(FLOAT);
         break;
       } //end of switch
-    //file will have do 
+    //file will have do
   } else {
     switch ( volume_data_type )
       {
@@ -534,9 +534,9 @@ void MINCImageIO::ReadImageInformation()
         return;
       } //end of switch
   }
-  
+
   this->ComputeStrides();
-    
+
   switch ( volume_data_class )
     {
     case MI_CLASS_REAL:
@@ -559,8 +559,8 @@ void MINCImageIO::ReadImageInformation()
       itkDebugMacro("Bad data class ");
       return;
     } //end of switch
-    
-    
+
+
   this->SetNumberOfDimensions(m_NDims);
   this->SetNumberOfComponents(numberOfComponents);
 
@@ -1266,18 +1266,18 @@ void MINCImageIO::Write(const void *buffer)
 // {
 //   midimclass_t dim_class;
 //   double       direction_cosines[3];
-//   double       dircos[3][3] = 
+//   double       dircos[3][3] =
 //               { { 1, 0, 0 },
 //                 { 0, 1, 0 },
 //                 { 0, 0, 1 } };
-// 
+//
 //   // figure out present dimension in the order of either
 //   // xspace,yspace,zspace, time or xfrequency,yfrequency,zfrequency, tfrequency
 //   // --> x,y,z,t and vector-dimension
 //   size_t i = 0;
 //   size_t counter = 0;
 //   size_t counter2 = 5;
-// 
+//
 //   for ( i = 0; i < this->m_NDims; i++ )
 //     {
 //     if ( miget_dimension_class(hdims[i], &dim_class) < 0 )
@@ -1286,7 +1286,7 @@ void MINCImageIO::Write(const void *buffer)
 //       itkDebugMacro("Could not get dim class\"" << m_FileName.c_str() << "\".");
 //       return;
 //       }
-// 
+//
 //     switch ( dim_class )
 //       {
 //       case MI_DIMCLASS_SPATIAL:
@@ -1328,16 +1328,16 @@ void MINCImageIO::Write(const void *buffer)
 //       } // end of switch
 //     }   //end of for
 //   // fill in the itk matrix for direction cosines
-// 
+//
 //   m_DirectionCosines.Fill(0.0);
 //   m_DirectionCosines.SetIdentity();
-//   
+//
 //   //figure out from direction cosines which dimension is what
 //   // largest z component (3 dimensions) --> zspace
 //   // then largest y component (2 dimension) --> yspace
 //   // last remaining dimension xspace.
 //   //VF: sorry, this is not helpfull
-//   
+//
 //   int temp;
 //   if ( counter == 3 ) // three spatial dimensions
 //     {
@@ -1347,7 +1347,7 @@ void MINCImageIO::Write(const void *buffer)
 //       m_DirectionCosines[0][2] = dircos[0][0];
 //       m_DirectionCosines[1][2] = dircos[1][0];
 //       m_DirectionCosines[2][2] = dircos[2][0];
-// 
+//
 //       if ( dircos[1][1] >= dircos[1][2] )
 //         {
 //         m_DirectionCosines[0][1] = dircos[0][1];
@@ -1430,5 +1430,5 @@ void MINCImageIO::Write(const void *buffer)
 //       }
 //     }
 // }
-// 
+//
 } // end namespace itk
