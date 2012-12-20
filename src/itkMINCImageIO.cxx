@@ -699,6 +699,18 @@ void MINCImageIO::WriteImageInformation(void)
     itkDebugMacro("Could not create image in  file \"" << m_FileName.c_str() << "\".");
     return;
  }
+ 
+  if( miset_slice_scaling_flag(m_volume, 0 )<0)
+  {
+    itkDebugMacro("Could not set slice scaling flag");
+    return;
+  }
+
+  double valid_min,valid_max;
+  miget_volume_valid_range(m_volume,&valid_max,&valid_min);
+  //by default valid range will be equal to range, to avoid scaling
+  miset_volume_range(m_volume,valid_max,valid_min);
+  
   //TODO: write out metainformation somewhere
 }
 
