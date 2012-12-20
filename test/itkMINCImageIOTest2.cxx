@@ -54,9 +54,6 @@ int itkMINCImageIOTest2( int argc, char * argv [] )
   reader->SetFileName( argv[1] );
   writer->SetFileName( argv[2] );
 
-  std::cout << "input file = " << argv[1] << std::endl;
-  std::cout << "output file = " << argv[2] << std::endl;
-
   writer->SetInput( reader->GetOutput() );
 
   try
