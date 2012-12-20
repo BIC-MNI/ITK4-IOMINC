@@ -21,12 +21,11 @@
 #include "itkImage.h"
 #include <iostream>
 
-#include "itkMINCImageIO.h"
 #include "itkMINCImageIOFactory.h"
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
 
-int itkMINCImageIOTest2( int argc, char * argv [] )
+int itkMINCImageIOTest3( int argc, char * argv [] )
 {
 
   if ( argc < 3 )
@@ -37,10 +36,9 @@ int itkMINCImageIOTest2( int argc, char * argv [] )
     return EXIT_FAILURE;
     }
 
-  typedef itk::Image< unsigned short, 3 > ImageType;
+  itk::MINCImageIOFactory::RegisterOneFactory();
 
-  itk::MINCImageIO::Pointer mincIO1 = itk::MINCImageIO::New();
-  itk::MINCImageIO::Pointer mincIO2 = itk::MINCImageIO::New();
+  typedef itk::Image< unsigned short, 3 > ImageType;
 
   typedef itk::ImageFileReader< ImageType >   ReaderType;
   typedef itk::ImageFileWriter< ImageType >   WriterType;
@@ -48,12 +46,8 @@ int itkMINCImageIOTest2( int argc, char * argv [] )
   ReaderType::Pointer reader = ReaderType::New();
   WriterType::Pointer writer = WriterType::New();
 
-  reader->SetImageIO( mincIO1 );
-  writer->SetImageIO( mincIO2 );
-
   reader->SetFileName( argv[1] );
   writer->SetFileName( argv[2] );
-
   writer->SetInput( reader->GetOutput() );
 
   try

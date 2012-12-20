@@ -39,14 +39,15 @@ namespace itk
 /** \class MINCImageIO
  *
  * \author Leila Baghdadi
- * \brief Class that defines how to read MINC file format. Note,like
- * ITK, MINC is N dimensional and dimensions can be submitted in any
- * arbitrary order. Here we make sure the dimensions are ordered as
- * xspace, yspace, zspace, time and vector_dimension and so on or
- * xfrequencey, yfrequency, zfrequency, tfrequency and
- * vector_dimension and so on
- * NOTE** This class only reads the regularly sampled dimensions as I
- * am not sure how to deal with "iregularly sampled" dimensions yet!
+ * \brief Class that defines how to read MINC file format. 
+ * 
+ * Note, like ITK, MINC is N dimensional and dimensions
+ * can be submitted in any arbitrary order. Here we make sure the
+ * dimensions are ordered as xspace, yspace, zspace, time and
+ * vector_dimension and so on or xfrequencey, yfrequency, zfrequency,
+ * tfrequency and vector_dimension and so on NOTE** This class only
+ * reads the regularly sampled dimensions as I am not sure how to deal
+ * with "iregularly sampled" dimensions yet!
  *
  * This code was contributed in the Insight Journal paper:
  * "MINC2.0 IO Support for ITK"
@@ -61,7 +62,7 @@ class ITK_EXPORT MINCImageIO:public ImageIOBase
 {
 public:
   /** Standard class typedefs. */
-  typedef MINCImageIO          Self;
+  typedef MINCImageIO           Self;
   typedef ImageIOBase           Superclass;
   typedef SmartPointer< Self >  Pointer;
   typedef Matrix< float, 3, 3 > MatrixType;
