@@ -295,7 +295,8 @@ template <typename TPixel,int VDimension> int MINCReadWriteTest(const char *file
       {
         std::cout << "Original Pixel (" << it.Value()
                   << ") doesn't match read-in Pixel ("
-                  << it2.Value() << std::endl;
+                  << it2.Value() << " ) " << std::endl
+                  << " in "<< fileName  << std::endl;
         success = EXIT_FAILURE;
         break;
       }
@@ -307,7 +308,7 @@ template <typename TPixel,int VDimension> int MINCReadWriteTest(const char *file
       {
         std::cout << "Original Pixel (" << it.Value()
                   << ") doesn't match read-in Pixel ("
-                  << it2.Value()
+                  << it2.Value() << " ) "
                   << " in "<< fileName <<std::endl;
         success = EXIT_FAILURE;
         break;
@@ -488,7 +489,8 @@ template <typename TPixel,int VDimension> int MINCReadWriteTestVector(const char
       {
         std::cout << "Original Pixel (" << pix1
                   << ") doesn't match read-in Pixel ("
-                  << pix2 << std::endl;
+                  << pix2 << " ) "
+                  << " in "<< fileName <<std::endl;
         success = EXIT_FAILURE;
         break;
       }
@@ -502,7 +504,7 @@ template <typename TPixel,int VDimension> int MINCReadWriteTestVector(const char
       {
         std::cout << "Original Pixel (" << pix1
                   << ") doesn't match read-in Pixel ("
-                  << pix2
+                  << pix2 << " ) "
                   << " in "<< fileName <<std::endl;
         success = EXIT_FAILURE;
         break;
