@@ -27,8 +27,19 @@ itk_add_test(NAME itkMINCImageIOTest2
       DATA{Input/pd_z+_byte_cor.mnc} ${ITK_TEST_OUTPUT_DIR}/pd_z+_byte_cor.mnc)
 
 itk_add_test(NAME itkMINCImageIOTest3
-  COMMAND ITKIOMINCTestDriver itkMINCImageIOTest3
+  COMMAND ITKIOMINCTestDriver
+      --compare DATA{Input/pd_z+_byte_cor.mnc}
+                ${ITK_TEST_OUTPUT_DIR}/pd_z+_byte_cor_2.mnc
+  itkMINCImageIOTest3
       DATA{Input/pd_z+_byte_cor.mnc} ${ITK_TEST_OUTPUT_DIR}/pd_z+_byte_cor_2.mnc)
+
+itk_add_test(NAME itkMINCImageIOTest4
+  COMMAND ITKIOMINCTestDriver
+--compare DATA{${ITK_DATA_ROOT}/Input/HeadMRVolume.mhd}
+                ${ITK_TEST_OUTPUT_DIR}/HeadMRVolume.mnc
+  itkMINCImageIOTest3
+      DATA{${ITK_DATA_ROOT}/Input/HeadMRVolume.mhd} ${ITK_TEST_OUTPUT_DIR}/HeadMRVolume.mnc)
+
 
 # CreateTestDriver(ITKIOTransformMINC "${ITKIOMINC-Test_LIBRARIES}" "${ITKIOTransformMincTests}")
 # TARGET_LINK_LIBRARIES(ITKIOTransformMINCTestDriver ITKIOTransformBase )
