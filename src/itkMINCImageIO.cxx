@@ -21,8 +21,7 @@
 
 namespace itk
 {
-#define MINC_MAXDIM 15
-#define MINC_MAXUSE 5
+
 
 bool MINCImageIO::CanReadFile(const char *file)
 {
@@ -31,19 +30,48 @@ bool MINCImageIO::CanReadFile(const char *file)
     itkDebugMacro(<< "No filename specified.");
     return false;
     }
-
-  mihandle_t volume;
-
-  if ( miopen_volume(file, MI2_OPEN_READ, &volume) < 0 )
+    
+  std::string::size_type mncPos = filename.rfind(".mnc");
+  if ( (mncPos != std::string::npos)
+	&& (mncPos == filename.length() - 4) )
     {
-    itkDebugMacro(<< " Can not open File:" << file << "\n");
-    return false;
+    return true;
     }
-  if ( miclose_volume(volume) < 0 )
+
+  mncPos = filename.rfind(".MNC");
+  if ( (mncPos != std::string::npos)
+	&& (mncPos == filename.length() - 4) )
     {
-    itkDebugMacro(<< " Can not close File:" << file << "\n");
-    return false;
+    return true;
     }
+
+  mncPos = filename.rfind(".mnc2");
+  if ( (mncPos != std::string::npos)
+	&& (mncPos == filename.length() - 5) )
+    {
+    return true;
+    }
+  
+  mncPos = filename.rfind(".MNC2");
+  if ( (mncPos != std::string::npos)
+	&& (mncPos == filename.length() - 5) )
+    {
+    return true;
+    }
+
+//   mihandle_t volume;
+// 
+//   if ( miopen_volume(file, MI2_OPEN_READ, &volume) < 0 )
+//     {
+//     itkDebugMacro(<< " Can not open File:" << file << "\n");
+//     return false;
+//     }
+//   if ( miclose_volume(volume) < 0 )
+//     {
+//     itkDebugMacro(<< " Can not close File:" << file << "\n");
+//     return false;
+//     }
+
   return true;
 }
 
@@ -100,7 +128,7 @@ void MINCImageIO::Read(void *buffer)
   // fill out the array of dimension handles,"regularly sampled"
   // the dimensions will be retrieved in file order
   midimhandle_t *hdims = new midimhandle_t[usefulDimensions];
-  if ( miget_volume_dimensions(volume, MI_DIMCLASS_ANY, MI_DIMATTR_REGULARLY_SAMPLED, MI_DIMORDER_FILE, this->m_NDims,
+  if ( miget_volume_dimensions(volume, MI_DIMCLASS_ANY, MI_DIMATTR_ALL, MI_DIMORDER_FILE, this->m_NDims,
                                hdims) < 0 )
     {
     itkDebugMacro(" Can not get dimension handles!!\n");
@@ -226,41 +254,80 @@ void MINCImageIO::Read(void *buffer)
     }
 }
 
-MINCImageIO::MINCImageIO()
+
+void MINCImageIO::CleanupDimensions(void)
 {
-  this->m_NDims = 0;
-  this->m_DimensionName  = new char *[MINC_MAXDIM + 1];
-  this->m_DimensionSize  = new misize_t[MINC_MAXDIM + 1];
-  this->m_DimensionStart = new double[MINC_MAXDIM + 1];
-  this->m_DimensionStep  = new double[MINC_MAXDIM + 1];
-  this->m_DimensionIndices = new int[MINC_MAXDIM + 1];
-
-
-  for ( int i = 0; i <= MINC_MAXDIM; i++ )
+  for ( int i = 0; i < this->m_NDims; i++ )
     {
-    this->m_DimensionName[i]  = 0;
+     if(this->m_DimensionName[i])
+       free(this->m_DimensionName[i]);
+     this->m_DimensionName[i]=NULL;
+    }
+    
+  if(this->m_DimensionName) delete[] this->m_DimensionName;
+  if(this->m_DimensionSize) delete[] this->m_DimensionSize;
+  if(this->m_DimensionStart) delete[] this->m_DimensionStart;
+  if(this->m_DimensionStep) delete[] this->m_DimensionStep;
+  if(this->m_DimensionIndices) delete[] this->m_DimensionIndices;
+  
+  this->m_DimensionName  = NULL;
+  this->m_DimensionSize  = NULL;
+  this->m_DimensionStart = NULL;
+  this->m_DimensionStep  = NULL;
+  this->m_DimensionIndices = NULL;
+ 
+}
+
+
+void MINCImageIO::AllocateDimensions(int nDims)
+{
+  CleanupDimensions();
+  
+  m_NDims=nDims;
+  
+  this->m_DimensionName  = new const char*[m_NDims];
+  this->m_DimensionSize  = new misize_t[m_NDims];
+  this->m_DimensionStart = new double[m_NDims];
+  this->m_DimensionStep  = new double[m_NDims];
+  
+  for ( int i = 0; i < this->m_NDims; i++ )
+    {
+    this->m_DimensionName[i]  = NULL;
     this->m_DimensionSize[i]  = 0;
     this->m_DimensionStart[i] = 0.0;
     this->m_DimensionStep[i]  = 0.0;
-    this->m_DimensionIndices[i] = -1;
     }
+  for ( int i = 0; i < 5 ; i++ )
+  {
+    this->m_DimensionIndices[i] = -1;
+  }
+  
   m_DimensionOrder = 0;
+}
 
-  m_Shift = 0.0;
-  m_Scale = 1.0;
-  m_OriginalStart[0] = 0;
-  m_OriginalStart[1] = 0;
-  m_OriginalStart[2] = 0;
+
+MINCImageIO::MINCImageIO()
+{
+  this->m_NDims = 0;
+  this->m_DimensionName  = NULL;
+  this->m_DimensionSize  = NULL;
+  this->m_DimensionStart = NULL;
+  this->m_DimensionStep  = NULL;
+  this->m_DimensionIndices = NULL;
+
+
+
   m_Complex = 0;
+  m_volume = NULL;
 }
 
 MINCImageIO::~MINCImageIO()
 {
-  delete[] this->m_DimensionName;
-  delete[] this->m_DimensionSize;
-  delete[] this->m_DimensionStart;
-  delete[] this->m_DimensionStep;
-  delete[] this->m_DimensionIndices;
+  if( m_volume )
+    miclose_volume( m_volume );
+  m_volume = NULL;
+  
+  CleanupDimensions();
 }
 
 void MINCImageIO::PrintSelf(std::ostream & os, Indent indent) const
@@ -273,10 +340,8 @@ void MINCImageIO::PrintSelf(std::ostream & os, Indent indent) const
 
 void MINCImageIO::ReadImageInformation()
 {
-  mihandle_t volume;
-
   // call to minc2.0 function to open the file
-  if ( miopen_volume(m_FileName.c_str(), MI2_OPEN_READ, &volume) < 0 )
+  if ( miopen_volume(m_FileName.c_str(), MI2_OPEN_READ, &m_volume) < 0 )
     {
     // Error opening the volume
     itkDebugMacro("Could not open file \"" << m_FileName.c_str() << "\".");
@@ -285,36 +350,26 @@ void MINCImageIO::ReadImageInformation()
 
   // find out how many dimensions are there regularly sampled
   // dimensions only
-  int numberOfDimensions;
-  if ( miget_volume_dimension_count(volume, MI_DIMCLASS_ANY, MI_DIMATTR_REGULARLY_SAMPLED, &numberOfDimensions) < 0 )
+  if ( miget_volume_dimension_count(m_volume, MI_DIMCLASS_ANY, MI_DIMATTR_ALL, &m_NDims) < 0 )
     {
     itkDebugMacro("Could not get the number of dimensions in the volume!");
     return;
     }
-  m_NDims = static_cast< unsigned int >( numberOfDimensions );
+    
+ 
   this->SetNumberOfDimensions(m_NDims);
-  if ( m_NDims > MINC_MAXDIM )
-    {
-    // Error TOO MANY dimensions
-    itkDebugMacro("Number of dimensions exceeds expectation!");
-    }
 
   // get dimension handles in FILE ORDER (i.e, the order as they are
   // submitted to file)
   midimhandle_t *hdims = new midimhandle_t[m_NDims];
-  if ( miget_volume_dimensions(volume, MI_DIMCLASS_ANY, MI_DIMATTR_REGULARLY_SAMPLED, MI_DIMORDER_FILE, m_NDims,
+  if ( miget_volume_dimensions(volume, MI_DIMCLASS_ANY, MI_DIMATTR_ALL, MI_DIMORDER_FILE, m_NDims,
                                hdims) < 0 )
     {
     itkDebugMacro("Could not get dimension handles!");
     return;
     }
 
-  // fill the DimensionOrder (string containing the first letter of all
-  // dimensions
-  // in FILE_ORDER) and DimensionName
-  m_DimensionOrder = new char[m_NDims + 1];
-  size_t i;
-  for ( i = 0; i < m_NDims; i++ )
+  for (int i = 0; i < m_NDims; i++ )
     {
     char *name;
     if ( miget_dimension_name(hdims[i], &name) < 0 )
@@ -325,9 +380,7 @@ void MINCImageIO::ReadImageInformation()
       }
 
     this->m_DimensionName[i] = name;
-    this->m_DimensionOrder[i] = name[0];
     }
-  this->m_DimensionOrder[i] = '\0';
 
   // fill the DimensionSize by calling the following MINC2.0 function
   misize_t *sizes = new misize_t[m_NDims];
@@ -345,8 +398,9 @@ void MINCImageIO::ReadImageInformation()
     this->m_DimensionSize[i] = sizes[i];
     }
   size_t numberOfComponents = 1;
-  this->XYZFromDirectionCosines(hdims, this->m_DimensionIndices, &numberOfComponents);
-
+  
+  
+  //TODO: extract number of components and direction cosines
   double separations[MINC_MAXDIM + 1];
   if ( miget_dimension_separations(hdims, MI_ORDER_FILE, m_NDims, separations) < 0 )
     {
@@ -360,8 +414,7 @@ void MINCImageIO::ReadImageInformation()
     return;
     }
   //fill out dimension size, step and start
-  // note : rotate origin as itk will *NOT* do it
-  // ITK ADPOTED DICOM conversions which do *NOT* rotate origin
+
   int j = this->m_NDims - 1;
   for ( i = 0; i < this->m_NDims; i++ )
     {
@@ -397,58 +450,35 @@ void MINCImageIO::ReadImageInformation()
     {
     itkDebugMacro(" Can not get volume data type!!\n");
     }
-  // set the file data type
-  switch ( volume_data_type )
-    {
-    case MI_TYPE_BYTE:
-      this->SetComponentType(CHAR);
-      break;
-    case MI_TYPE_UBYTE:
-      this->SetComponentType(UCHAR);
-      break;
-    case MI_TYPE_SHORT:
-      this->SetComponentType(SHORT);
-      break;
-    case MI_TYPE_USHORT:
-      this->SetComponentType(USHORT);
-      break;
-    case MI_TYPE_INT:
-      this->SetComponentType(INT);
-      break;
-    case MI_TYPE_UINT:
-      this->SetComponentType(UINT);
-      break;
-    case MI_TYPE_FLOAT:
-      this->SetComponentType(FLOAT);
-      break;
-    case MI_TYPE_DOUBLE:
-      this->SetComponentType(DOUBLE);
-      break;
-    case MI_TYPE_SCOMPLEX:
-      this->SetComponentType(SHORT);
-      break;
-    case MI_TYPE_ICOMPLEX:
-      this->SetComponentType(INT);
-      break;
-    case MI_TYPE_FCOMPLEX:
-      this->SetComponentType(FLOAT);
-      break;
-    case MI_TYPE_DCOMPLEX:
-      this->SetComponentType(DOUBLE);
-      break;
-    default:
-      itkDebugMacro("Bad data type ");
-      return;
-    } //end of switch
-
-  this->ComputeStrides();
 
   // find out whether the data has slice scaling
-  int slice_scaling_flag;
+  miboolean_t slice_scaling_flag=0;
+  miboolean_t global_scaling_flag=0;
+  
   if ( miget_slice_scaling_flag(volume, &slice_scaling_flag) < 0 )
     {
     itkDebugMacro(" Can not get slice scaling flag!!\n");
     }
+    
+  //voxel valid range
+  double valid_min,valid_max;
+  //get the voxel valid range
+  if(miget_volume_valid_range(m_volume,&valid_max,&valid_min) < 0 )
+  {
+    itkDebugMacro(" Can not get volume valid range!!\n");
+  }
+  
+  //real volume range, only awailable when slice scaling is off
+  double volume_min=0.0,volume_max=1.0;
+  if( !slice_scaling_flag )
+  {
+    if( miget_volume_range(m_volume,&valid_max,&valid_min) < 0 )
+    {
+      itkDebugMacro(" Can not get volume range!!\n");
+    }
+    global_scaling_flag=(volume_min==valid_min && volume_max==valid_max);
+  }
+  
   miclass_t volume_data_class;
 
   if ( miget_data_class(volume, &volume_data_class) < 0 )
@@ -456,34 +486,86 @@ void MINCImageIO::ReadImageInformation()
     itkDebugMacro(" Could not get data class");
     return;
     }
+    
+  // set the file data type
+  if(slice_scaling_flag || global_scaling_flag)
+  {
+    switch ( volume_data_type )
+      {
+      case MI_TYPE_FLOAT:
+        this->SetComponentType(FLOAT);
+        break;
+      case MI_TYPE_DOUBLE:
+        this->SetComponentType(DOUBLE);
+        break;
+      case MI_TYPE_FCOMPLEX:
+        this->SetComponentType(FLOAT);
+        break;
+      case MI_TYPE_DCOMPLEX:
+        this->SetComponentType(DOUBLE);
+        break;
+      default:
+        this->SetComponentType(FLOAT);
+        break;
+      } //end of switch
+    //file will have do 
+  } else {
+    switch ( volume_data_type )
+      {
+      case MI_TYPE_BYTE:
+        this->SetComponentType(CHAR);
+        break;
+      case MI_TYPE_UBYTE:
+        this->SetComponentType(UCHAR);
+        break;
+      case MI_TYPE_SHORT:
+        this->SetComponentType(SHORT);
+        break;
+      case MI_TYPE_USHORT:
+        this->SetComponentType(USHORT);
+        break;
+      case MI_TYPE_INT:
+        this->SetComponentType(INT);
+        break;
+      case MI_TYPE_UINT:
+        this->SetComponentType(UINT);
+        break;
+      case MI_TYPE_FLOAT:
+        this->SetComponentType(FLOAT);
+        break;
+      case MI_TYPE_DOUBLE:
+        this->SetComponentType(DOUBLE);
+        break;
+      case MI_TYPE_SCOMPLEX:
+        this->SetComponentType(SHORT);
+        break;
+      case MI_TYPE_ICOMPLEX:
+        this->SetComponentType(INT);
+        break;
+      case MI_TYPE_FCOMPLEX:
+        this->SetComponentType(FLOAT);
+        break;
+      case MI_TYPE_DCOMPLEX:
+        this->SetComponentType(DOUBLE);
+        break;
+      default:
+        itkDebugMacro("Bad data type ");
+        return;
+      } //end of switch
+  }
+  
+  this->ComputeStrides();
+    
   switch ( volume_data_class )
     {
     case MI_CLASS_REAL:
       this->SetPixelType(SCALAR);
-      if ( !( volume_data_type == MI_TYPE_FLOAT || volume_data_type == MI_TYPE_DOUBLE ) )
-        {
-        if ( slice_scaling_flag )
-          {
-          this->SetSliceScalingFromLocalScaling(volume);
-          }
-        else
-          {
-          this->SetSliceScalingFromGlobalScaling(volume);
-          }
-        }
       break;
     case MI_CLASS_INT:
       this->SetPixelType(SCALAR);
-      if ( slice_scaling_flag )
-        {
-        this->SetSliceScalingFromLocalScaling(volume);
-        }
-      else
-        {
-        this->SetSliceScalingFromGlobalScaling(volume);
-        }
       break;
     case MI_CLASS_LABEL:
+      this->SetPixelType(SCALAR);
       // create an array of label names and values
       // not sure how to pass this to itk yet!
       break;
@@ -1197,112 +1279,12 @@ void MINCImageIO::Write(const void *buffer)
 //     }
 }
 
-void MINCImageIO::SetSliceScalingFromLocalScaling(mihandle_t volume)
-{
-  //find out min of mins and max of maxs for slices
-  size_t   i;
-  size_t   j;
-  misize_t *coords = new misize_t[this->m_NDims];
-  double         slice_max, slice_min;
-  double         max = -1e300, min = 1e300;
-  double         valid_max, valid_min;
-
-  if ( miget_volume_valid_range(volume, &valid_max, &valid_min) < 0 )
-    {
-    itkDebugMacro("Could not get volume valid range ");
-    delete[] coords;
-    return;
-    }
-
-  mitype_t volume_data_type;
-
-  if ( miget_data_type(volume, &volume_data_type) < 0 )
-    {
-    itkDebugMacro(" Can not get volume data type!!\n");
-    }
-  // need coordinates in RAW dimension ordering
-  // for miget_slice_range
-  for ( i = 0; i < this->m_NDims; i++ )
-    {
-    coords[i] = 0;
-    }
-  // vector_dimension should not have slice scaling!!!
-  // not sure how to deal with this yet
-  // assume 4-dimensions without the vector now
-  // go through slices in different dimensions
-  for ( i = 0; i < this->GetDimensions(this->m_NDims - 1); i++ )
-    {
-    coords[0] = i;
-    if ( this->m_NDims > 3 )
-      {
-      for ( j = 0; j < this->GetDimensions(this->m_NDims - 2); j++ )
-        {
-        coords[1] = j;
-        if ( miget_slice_range(volume, coords, this->m_NDims, &slice_max, &slice_min) < 0 )
-          {
-          itkDebugMacro("Could not get slice range");
-          delete[] coords;
-          return;
-          }
-
-        if ( slice_min < min )
-          {
-          min = slice_min;
-          }
-        if ( slice_max > max )
-          {
-          max = slice_max;
-          }
-        }
-      }
-    else
-      {
-      if ( miget_slice_range(volume, coords, this->m_NDims, &slice_max, &slice_min) < 0 )
-        {
-        itkDebugMacro("Could not get slice range");
-        delete[] coords;
-        return;
-        }
-      if ( slice_min < min )
-        {
-        min = slice_min;
-        }
-      if ( slice_max > max )
-        {
-        max = slice_max;
-        }
-      }
-    }
-  m_Scale = ( max - min ) / ( valid_max - valid_min );
-  m_Shift = min - ( valid_min * m_Scale );
-  delete[] coords;
-}
-
-void MINCImageIO::SetSliceScalingFromGlobalScaling(mihandle_t volume)
-{
-  double volume_max, volume_min;
-  double valid_max, valid_min;
-
-  if ( miget_volume_valid_range(volume, &valid_max, &valid_min) < 0 )
-    {
-    itkDebugMacro("Could not get volume valid range ");
-    return;
-    }
-  if ( miget_volume_range(volume, &volume_max, &volume_min) < 0 )
-    {
-    itkDebugMacro("Could not get volume range");
-    return;
-    }
-
-  m_Scale = ( volume_max - volume_min ) / ( valid_max - valid_min );
-  m_Shift = volume_min - ( valid_min * m_Scale );
-}
-
 void MINCImageIO::XYZFromDirectionCosines(midimhandle_t *hdims, int *dim_indices, size_t *numberOfComponents)
 {
   midimclass_t dim_class;
   double       direction_cosines[3];
-  double       dircos[3][3] = { { 1, 0, 0 },
+  double       dircos[3][3] = 
+              { { 1, 0, 0 },
                 { 0, 1, 0 },
                 { 0, 0, 1 } };
 
@@ -1366,11 +1348,13 @@ void MINCImageIO::XYZFromDirectionCosines(midimhandle_t *hdims, int *dim_indices
 
   m_DirectionCosines.Fill(0.0);
   m_DirectionCosines.SetIdentity();
+  
   //figure out from direction cosines which dimension is what
   // largest z component (3 dimensions) --> zspace
   // then largest y component (2 dimension) --> yspace
   // last remaining dimension xspace.
-
+  //VF: sorry, this is not helpfull
+  
   int temp;
   if ( counter == 3 ) // three spatial dimensions
     {

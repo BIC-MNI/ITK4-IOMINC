@@ -49,7 +49,7 @@ namespace itk
  * am not sure how to deal with "iregularly sampled" dimensions yet!
  *
  * This code was contributed in the Insight Journal paper:
- * "MINC.0 IO Support for ITK"
+ * "MINC2.0 IO Support for ITK"
  * by Baghdadi L.
  * http://hdl.handle.net/1926/191
  * http://www.insight-journal.org/browse/publication/88
@@ -100,59 +100,41 @@ public:
   char * GetDimensionOrder() { return m_DimensionOrder; }
   void SetDimensionOrder(char *dimorder) { m_DimensionOrder = dimorder; }
 
-  void XYZFromDirectionCosines(midimhandle_t *hdims, int *dim_indices, size_t *number_of_components);
+  void XYZFromDirectionCosines(midimhandle_t *hdims, int *dim_indices, misize_t *number_of_components);
 
 protected:
   MINCImageIO();
   ~MINCImageIO();
   void PrintSelf(std::ostream & os, Indent indent) const;
-
   void WriteSlice(std::string & fileName, const void *buffer);
 
-  // Num. dimensions in base class (c.f. GetNumberOfDimensions); why keep a
-  // second copy here?
-  size_t m_NDims;
+  int  m_NDims; /*Number of dimensions*/
 
-  char **m_DimensionName;
-  virtual void SetDimensionName(size_t i, char *name);
-  virtual char * GetDimensionName(size_t i){ return m_DimensionName[i]; }
-
-  char *m_DimensionOrder;
-
-  // shift and scale parameter (god help me with slice scaling!!)
-  double m_Shift;
-  double m_Scale;
-
-  // dimension size and start and step
+  // dimension size and start and step, in FILE ORDER!
+  
+  const char  **m_DimensionName; 
   misize_t     *m_DimensionSize;
   double       *m_DimensionStart;
   double       *m_DimensionStep;
+  
+  // MINC2 volume handle , currently opened
+  mihandle_t   m_volume;
 
+  // 
   MatrixType m_DirectionCosines;
-
-  int *m_DimensionIndices;
-
-  // Description:
-  // Check the DimensionOrder and adjust according to what
-  // dimensions the user has actually specified via
-  // SetDimensionOrder()
-  int CheckDimensionOrder(char *userdimorder);
-
-  double m_OriginalStart[3];
   // complex type images, composed of complex numbers
-  int m_Complex;
+  //int m_Complex;
+  
+  // will assign m_NDims and allocate all internal buffers to hold the information
+  void AllocateDimensions(int nDims);
+  
+  // cleanup internal buffers
+  void CleanupDimensions(void);
 
 private:
   MINCImageIO(const Self &);   //purposely not implemented
   void operator=(const Self &); //purposely not implemented
 
-  // Description
-  // Get slice scaling from local slice scaling
-  void SetSliceScalingFromLocalScaling(mihandle_t volume);
-
-  // Description
-  // Get slice scaling from global slice scaling
-  void SetSliceScalingFromGlobalScaling(mihandle_t volume);
 };
 } // end namespace itk
 
