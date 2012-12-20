@@ -26,6 +26,8 @@ namespace itk
 /** \class MINCImageIOFactory
  * \brief Create instances of MINCImageIO objects using an object factory.
  *
+ * \ingroup ITKIOMINC
+ *
  * This code was contributed in the Insight Journal paper:
  * "MINC.0 IO Support for ITK"
  * by Baghdadi L.
