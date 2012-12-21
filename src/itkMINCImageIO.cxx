@@ -18,6 +18,7 @@
 #include "itkMINCImageIO.h"
 #include <stdio.h>
 #include "vnl/vnl_vector.h"
+#include "itkMetaDataObject.h"
 
 namespace itk
 {
@@ -574,6 +575,30 @@ void MINCImageIO::ReadImageInformation()
   
   this->SetNumberOfComponents(numberOfComponents);
   this->ComputeStrides();
+
+  // Read Meta Data
+  MetaDataDictionary & dict = this->GetMetaDataDictionary();
+
+  dict.Clear();
+
+  milisthandle_t hlist;
+  char valuebuffer[256];
+
+  int entryId = milist_start(m_volume, "/", 1, &hlist);
+
+  if ( entryId == MI_NOERROR )
+     {
+     while( milist_grp_next(hlist, valuebuffer, sizeof(valuebuffer)) == MI_NOERROR )
+       {
+       std::string stringkey = "key";
+       std::string stringvalue = valuebuffer;
+       std::cout << stringvalue << std::endl;
+       itk::EncapsulateMetaData< std::string >( dict, stringkey, stringvalue );
+       }
+     }
+
+  milist_finish(hlist);
+
 }
 
 bool MINCImageIO::CanWriteFile(const char *name)
